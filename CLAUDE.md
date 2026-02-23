@@ -139,12 +139,23 @@ pnpm prisma studio            # DB GUIを起動
 
 > ⚠️ schema.prisma を変更したら必ず `pnpm prisma generate` を実行すること
 
-## 8. ツール利用ルール
+## 8. Git ブランチ運用ルール
+
+- **Issue対応時は必ずfeatureブランチを作成する**
+  - ブランチ名: `feature/issue-<番号>-<概要>` (例: `feature/issue-3-prisma-schema`)
+  - developブランチから分岐すること
+- **作業完了後はdevelopブランチにマージする**
+  - `git checkout develop && git merge --no-ff <featureブランチ>`
+  - マージ後、リモートにpushし、該当Issueをcloseする
+- **mainブランチには直接コミットしない**
+  - mainへのマージはPhase完了時など節目で行う
+
+## 9. ツール利用ルール
 
 - コード生成時は必ず context7 MCP を使って最新ドキュメントを参照すること
 - 特に Next.js, Prisma, shadcn/ui, NextAuth.js の API は context7 で最新仕様を確認してから実装すること
 
-## 9. 参照ドキュメント
+## 10. 参照ドキュメント
 
 詳細はdocs/配下を参照:
 
