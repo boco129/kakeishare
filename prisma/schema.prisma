@@ -1,0 +1,181 @@
+// カケイシェア Prisma Schema
+// 夫婦向け家計共有アプリ
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum Visibility {
+  PUBLIC
+  AMOUNT_ONLY
+  CATEGORY_TOTAL
+}
+
+enum ExpenseSource {
+  CSV_IMPORT
+  MANUAL
+}
+
+// ============================================================
+// User — ユーザー（夫=ADMIN / 妻=MEMBER）
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  expenses    Expense[]
+  installments Installment[]
+  csvImports   CsvImport[]   @relation("CsvImportOwner")
+  importedCsvs CsvImport[]   @relation("CsvImportedBy")
+
+  @@map("users")
+}
+
+// ============================================================
+// Category — 支出カテゴリ
+// ============================================================
+
+model Category {
+  id                String     @id @default(cuid())
+  name              String
+  icon              String     @default("📦")
+  isFixedCost       Boolean    @default(false)
+  defaultVisibility Visibility @default(PUBLIC)
+  sortOrder         Int        @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // リレーション
+  expenses Expense[]
+  budgets  Budget[]
+
+  @@map("categories")
+}
+
+// ============================================================
+// Expense — 支出明細
+// ============================================================
+
+model Expense {
+  id             String        @id @default(cuid())
+  userId         String
+  date           DateTime
+  amount         Int           // 円単位（integer）
+  description    String
+  categoryId     String?
+  visibility     Visibility    @default(PUBLIC)
+  isSubstitute   Boolean       @default(false) // 立替フラグ
+  actualAmount   Int?          // 立替時の自己負担額
+  source         ExpenseSource @default(MANUAL)
+  csvImportId    String?
+  aiCategorized  Boolean       @default(false)
+  confirmed      Boolean       @default(false)
+  memo           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // リレーション
+  user      User       @relation(fields: [userId], references: [id])
+  category  Category?  @relation(fields: [categoryId], references: [id])
+  csvImport CsvImport? @relation(fields: [csvImportId], references: [id])
+
+  @@index([userId])
+  @@index([userId, date])
+  @@index([date])
+  @@index([categoryId])
+  @@index([csvImportId])
+  @@map("expenses")
+}
+
+// ============================================================
+// Budget — 月次予算
+// ============================================================
+
+model Budget {
+  id         String   @id @default(cuid())
+  yearMonth  String   // "YYYY-MM" 形式
+  categoryId String?  // nullなら全体予算
+  amount     Int      // 円単位
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // リレーション
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@unique([yearMonth, categoryId])
+  @@map("budgets")
+}
+
+// ============================================================
+// Installment — 分割払い管理
+// ============================================================
+
+model Installment {
+  id              String     @id @default(cuid())
+  userId          String
+  description     String
+  totalAmount     Int        // 総額（円）
+  monthlyAmount   Int        // 月々の支払額（円）
+  totalMonths     Int        // 全回数
+  remainingMonths Int        // 残回数
+  startDate       DateTime
+  visibility      Visibility @default(PUBLIC)
+  fee             Int        @default(0) // 分割手数料（円）
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // リレーション
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("installments")
+}
+
+// ============================================================
+// CsvImport — CSV取り込み履歴
+// ============================================================
+
+model CsvImport {
+  id               String   @id @default(cuid())
+  userId           String   // カード所有者
+  importedById     String   // 実際に取り込んだユーザー
+  cardName         String
+  yearMonth        String   // "YYYY-MM" 形式
+  importedAt       DateTime @default(now())
+  recordCount      Int      @default(0)
+  unconfirmedCount Int      @default(0)
+  fileHash         String   // ファイルハッシュ（重複取り込み防止）
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // リレーション
+  user       User      @relation("CsvImportOwner", fields: [userId], references: [id])
+  importedBy User      @relation("CsvImportedBy", fields: [importedById], references: [id])
+  expenses   Expense[]
+
+  @@index([userId])
+  @@index([importedById])
+  @@unique([userId, fileHash])
+  @@map("csv_imports")
+}
