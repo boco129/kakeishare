@@ -24,6 +24,7 @@ async function main() {
     await tx.expense.deleteMany()
     await tx.csvImport.deleteMany()
     await tx.budget.deleteMany()
+    await tx.categoryVisibilitySetting.deleteMany()
     await tx.category.deleteMany()
     await tx.user.deleteMany()
 
@@ -65,6 +66,19 @@ async function main() {
         { id: "cat_insurance", name: "保険", icon: "🛡", isFixedCost: true, defaultVisibility: Visibility.PUBLIC, sortOrder: 13 },
         { id: "cat_car", name: "自動車", icon: "🚗", isFixedCost: false, defaultVisibility: Visibility.PUBLIC, sortOrder: 14 },
         { id: "cat_other", name: "その他", icon: "📦", isFixedCost: false, defaultVisibility: Visibility.AMOUNT_ONLY, sortOrder: 15 },
+      ],
+    })
+
+    // === 2.5 ユーザー別カテゴリ公開レベル設定 ===
+    // 夫婦それぞれのプライバシー設定（カテゴリのdefaultVisibilityと異なる設定のみ）
+    await tx.categoryVisibilitySetting.createMany({
+      data: [
+        // 妻: 交際費を「合計のみ」に変更（デフォルトは「金額のみ」）
+        { userId: "user_wife", categoryId: "cat_social", visibility: Visibility.CATEGORY_TOTAL },
+        // 妻: 衣服・美容を「合計のみ」に変更（デフォルトは「金額のみ」）
+        { userId: "user_wife", categoryId: "cat_clothing", visibility: Visibility.CATEGORY_TOTAL },
+        // 夫: 個人娯楽を「金額のみ」に変更（デフォルトは「合計のみ」）
+        { userId: "user_husband", categoryId: "cat_hobby", visibility: Visibility.AMOUNT_ONLY },
       ],
     })
 
@@ -284,6 +298,7 @@ async function main() {
     const counts = {
       users: await tx.user.count(),
       categories: await tx.category.count(),
+      categoryVisibilitySettings: await tx.categoryVisibilitySetting.count(),
       budgets: await tx.budget.count(),
       expenses: await tx.expense.count(),
       installments: await tx.installment.count(),

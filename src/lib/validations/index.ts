@@ -20,3 +20,14 @@ export {
   type PaginationParams,
   type PaginationMeta,
 } from "./pagination"
+
+export {
+  categoryCreateSchema,
+  categoryUpdateSchema,
+  categoryVisibilityUpdateSchema,
+  categoryReorderSchema,
+  type CategoryCreateInput,
+  type CategoryUpdateInput,
+  type CategoryVisibilityUpdateInput,
+  type CategoryReorderInput,
+} from "./category"
