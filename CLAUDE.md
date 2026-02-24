@@ -8,54 +8,64 @@
 
 ## 2. 技術スタック
 
+### Phase 1 実装済み
+
 | レイヤー | 技術 |
 |---------|------|
-| フレームワーク | Next.js 16 (App Router) + TypeScript |
-| スタイリング | Tailwind CSS + shadcn/ui |
-| ORM | Prisma |
-| DB（開発） | SQLite (`prisma/dev.db`) |
+| フレームワーク | Next.js 16.1.6 (App Router) + TypeScript |
+| UI | Tailwind CSS v4 + shadcn/ui |
+| ORM | Prisma 7.4.1 |
+| DB（開発） | SQLite（better-sqlite3 adapter, `prisma/dev.db`） |
 | DB（本番） | Supabase (PostgreSQL) |
-| 認証 | NextAuth.js v5 / Auth.js (Credentials) |
+| 認証 | next-auth 5.0.0-beta.30（Credentials） |
+| バリデーション | Zod 4.3.6 |
+| パッケージマネージャ | pnpm |
+| ホスティング | Vercel |
+
+### Phase 2 以降で導入予定
+
+| レイヤー | 技術 |
+|---------|------|
 | AI連携 | Anthropic SDK (`@anthropic-ai/sdk`) |
 | CSV解析 | papaparse |
-| バリデーション | Zod |
 | グラフ | Recharts |
 | 通知 | LINE Messaging API |
-| ホスティング | Vercel |
-| パッケージマネージャ | pnpm |
 
 ## 3. ディレクトリ構成ルール
 
 ```
 src/
-├── app/                  # Next.js App Router（画面 + APIルート）
-│   ├── page.tsx          # ダッシュボード（トップ）
-│   ├── expenses/         # 支出管理
-│   ├── review/           # 家計レビュー
-│   ├── settings/         # 設定
-│   └── api/              # APIルート
-│       ├── auth/
-│       ├── expenses/
-│       ├── csv-import/
-│       ├── categories/
-│       ├── budget/
-│       ├── installments/
-│       └── ai/           # Claude API連携 (categorize/report/chat)
-├── components/           # UIコンポーネント
-│   ├── ui/               # shadcn/ui
-│   ├── dashboard/
-│   ├── expenses/
-│   └── layout/
-├── auth.ts               # NextAuth v5 設定（プロジェクトルート直下）
-├── lib/                  # ビジネスロジック
-│   ├── db.ts             # Prisma Clientシングルトン
-│   ├── csv/              # CSV解析（parser.ts + mappings/）
-│   ├── ai/               # Claude API (client.ts/categorize.ts/report.ts)
-│   └── privacy/filter.ts # プライバシーフィルター
+├── app/                       # Next.js App Router
+│   ├── (app)/                 # 認証必須 Route Group
+│   │   ├── layout.tsx         # セッションチェック + AppShell
+│   │   ├── page.tsx           # ダッシュボード（トップ）
+│   │   ├── expenses/page.tsx  # 支出管理
+│   │   ├── review/page.tsx    # 家計レビュー
+│   │   └── settings/page.tsx  # 設定
+│   ├── (auth)/                # 未認証用 Route Group
+│   │   └── login/page.tsx     # ログイン画面
+│   └── api/                   # APIルート
+│       └── auth/[...nextauth]/route.ts
+├── auth.ts                    # NextAuth v5 設定（src直下、@/auth でimport）
+├── components/                # UIコンポーネント
+│   ├── ui/                    # shadcn/ui
+│   └── layout/                # AppShell・ナビゲーション
+├── generated/prisma/          # Prisma Client（自動生成）
+├── lib/                       # ビジネスロジック
+│   ├── db.ts                  # Prisma Clientシングルトン
+│   ├── auth-utils.ts          # 認証ヘルパー
+│   └── utils.ts               # 汎用ユーティリティ
 └── types/
-    ├── index.ts           # 型定義
-    └── next-auth.d.ts     # NextAuth 型拡張
+    └── next-auth.d.ts         # NextAuth 型拡張
+
+middleware.ts                  # ルート保護（Edge Runtime, JWT判定）
+prisma/
+├── schema.prisma              # データベーススキーマ
+└── seed.ts                    # シードデータ
 ```
+
+> **将来追加予定のディレクトリ**（Phase 2以降）:
+> `src/lib/csv/`, `src/lib/ai/`, `src/lib/privacy/`, `src/components/dashboard/`, `src/components/expenses/`, `src/app/api/expenses/`, `src/app/api/csv-import/` 等
 
 ## 4. コーディングルール
 
@@ -109,11 +119,11 @@ generateExpenseHash(date, description, amount)
 | テーブル | 主要カラム |
 |---------|-----------|
 | `users` | id, name, email, role(ADMIN/MEMBER), password |
-| `expenses` | id, user_id, date, amount, description, category_id, visibility, is_substitute, actual_amount, source, confirmed, ai_categorized |
+| `expenses` | id, user_id, date, amount, description, category_id, visibility, is_substitute, actual_amount, source, confirmed, ai_categorized, memo |
 | `categories` | id, name, icon, is_fixed_cost, default_visibility, sort_order |
 | `budgets` | id, year_month(YYYY-MM), category_id, amount |
-| `installments` | id, user_id, description, total_amount, monthly_amount, total_months, remaining_months, start_date, visibility |
-| `csv_imports` | id, user_id, card_name, year_month, imported_at, record_count, unconfirmed_count, file_hash |
+| `installments` | id, user_id, description, total_amount, monthly_amount, total_months, remaining_months, start_date, visibility, fee |
+| `csv_imports` | id, user_id, imported_by_id, card_name, year_month, imported_at, record_count, unconfirmed_count, file_hash |
 
 ### カード会社対応（CSVマッピング）
 
@@ -151,6 +161,9 @@ pnpm prisma studio            # DB GUIを起動
   - マージ後、リモートにpushし、該当Issueをcloseする
 - **mainブランチには直接コミットしない**
   - mainへのマージはPhase完了時など節目で行う
+- **作業完了後は対応ログを作成する**
+  - `docs/work-logs/issue-<番号>-<概要>.md` に対応内容をまとめる
+  - 対応日、ブランチ名、作成・変更ファイル一覧、実装詳細、レビュー指摘と対応、将来の課題を含める
 
 ## 9. ツール利用ルール
 
