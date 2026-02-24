@@ -44,10 +44,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   // リレーション
-  expenses    Expense[]
-  installments Installment[]
-  csvImports   CsvImport[]   @relation("CsvImportOwner")
-  importedCsvs CsvImport[]   @relation("CsvImportedBy")
+  expenses              Expense[]
+  installments          Installment[]
+  csvImports            CsvImport[]   @relation("CsvImportOwner")
+  importedCsvs          CsvImport[]   @relation("CsvImportedBy")
+  categoryVisibilities  CategoryVisibilitySetting[]
 
   @@map("users")
 }
@@ -67,10 +68,30 @@ model Category {
   updatedAt         DateTime   @updatedAt
 
   // リレーション
-  expenses Expense[]
-  budgets  Budget[]
+  expenses           Expense[]
+  budgets            Budget[]
+  visibilitySettings CategoryVisibilitySetting[]
 
   @@map("categories")
+}
+
+// ============================================================
+// CategoryVisibilitySetting — ユーザー別カテゴリ公開レベル設定
+// ============================================================
+
+model CategoryVisibilitySetting {
+  userId     String
+  categoryId String
+  visibility Visibility @default(PUBLIC)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // リレーション
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, categoryId])
+  @@map("category_visibility_settings")
 }
 
 // ============================================================
@@ -97,7 +118,7 @@ model Expense {
 
   // リレーション
   user      User       @relation(fields: [userId], references: [id])
-  category  Category?  @relation(fields: [categoryId], references: [id])
+  category  Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   csvImport CsvImport? @relation(fields: [csvImportId], references: [id])
 
   @@index([userId])
@@ -121,7 +142,7 @@ model Budget {
   updatedAt  DateTime @updatedAt
 
   // リレーション
-  category Category? @relation(fields: [categoryId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@unique([yearMonth, categoryId])
   @@map("budgets")

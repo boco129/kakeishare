@@ -1,6 +1,8 @@
 import { auth } from "@/auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogoutButton } from "@/components/layout/logout-button"
+import Link from "next/link"
+import { ChevronRight, Tags } from "lucide-react"
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -36,6 +38,22 @@ export default async function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* カテゴリ管理 */}
+        <Link href="/settings/categories" className="block">
+          <Card className="transition-colors hover:bg-accent/50">
+            <CardContent className="flex items-center gap-3 py-4">
+              <Tags className="size-5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="font-medium">カテゴリ管理</p>
+                <p className="text-sm text-muted-foreground">
+                  カテゴリの追加・編集・公開レベル設定
+                </p>
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* モバイルではサイドバーにログアウトがないため表示 */}
         <div className="desktop:hidden">
