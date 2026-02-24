@@ -1,17 +1,19 @@
 import { PrismaClient } from "@/generated/prisma/client"
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 
 declare global {
-  // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined
 }
 
-// Prisma v7 型制約回避をここに閉じ込める（将来差し替えしやすくする）
-// v7 では PrismaClientOptions に adapter か accelerateUrl が必須だが、
-// SQLite ではどちらも不要。config は生成コードに埋め込み済みのため実行時は問題ない。
+// Prisma v7: client エンジンでは adapter が必須
 function createPrismaClient() {
-  return new PrismaClient(
-    undefined as unknown as ConstructorParameters<typeof PrismaClient>[0]
+  // DATABASE_URL: "file:./prisma/dev.db" → SQLite ファイルパスを抽出
+  const url = (process.env.DATABASE_URL ?? "file:./prisma/dev.db").replace(
+    "file:",
+    ""
   )
+  const adapter = new PrismaBetterSqlite3({ url })
+  return new PrismaClient({ adapter })
 }
 
 export const db = globalThis.__prisma ?? createPrismaClient()
