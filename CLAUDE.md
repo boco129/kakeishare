@@ -15,7 +15,7 @@
 | ORM | Prisma |
 | DB（開発） | SQLite (`prisma/dev.db`) |
 | DB（本番） | Supabase (PostgreSQL) |
-| 認証 | NextAuth.js v4 (Credentials) |
+| 認証 | NextAuth.js v5 / Auth.js (Credentials) |
 | AI連携 | Anthropic SDK (`@anthropic-ai/sdk`) |
 | CSV解析 | papaparse |
 | バリデーション | Zod |
@@ -46,13 +46,15 @@ src/
 │   ├── dashboard/
 │   ├── expenses/
 │   └── layout/
+├── auth.ts               # NextAuth v5 設定（プロジェクトルート直下）
 ├── lib/                  # ビジネスロジック
 │   ├── db.ts             # Prisma Clientシングルトン
-│   ├── auth.ts           # 認証設定
 │   ├── csv/              # CSV解析（parser.ts + mappings/）
 │   ├── ai/               # Claude API (client.ts/categorize.ts/report.ts)
 │   └── privacy/filter.ts # プライバシーフィルター
-└── types/index.ts        # 型定義
+└── types/
+    ├── index.ts           # 型定義
+    └── next-auth.d.ts     # NextAuth 型拡張
 ```
 
 ## 4. コーディングルール
