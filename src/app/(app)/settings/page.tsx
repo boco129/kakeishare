@@ -18,18 +18,18 @@ export default async function SettingsPage() {
           <CardContent className="space-y-3">
             <div>
               <p className="text-sm text-muted-foreground">名前</p>
-              <p>{session?.user.name}</p>
+              <p>{session?.user?.name ?? "未設定"}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">メールアドレス</p>
-              <p>{session?.user.email}</p>
+              <p>{session?.user?.email ?? "未設定"}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">権限</p>
               <p>
-                {session?.user.role === "ADMIN"
+                {session?.user?.role === "ADMIN"
                   ? "管理者"
-                  : session?.user.role === "MEMBER"
+                  : session?.user?.role === "MEMBER"
                     ? "メンバー"
                     : "不明"}
               </p>
