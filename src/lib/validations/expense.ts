@@ -30,6 +30,12 @@ export const expenseUpdateSchema = expenseBaseSchema.partial()
 
 export type ExpenseUpdateInput = z.infer<typeof expenseUpdateSchema>
 
+/** ソート対象カラム */
+export const sortBySchema = z.enum(["date", "amount"]).default("date")
+
+/** ソート順 */
+export const sortOrderSchema = z.enum(["asc", "desc"]).default("desc")
+
 /** 支出一覧取得用クエリパラメータスキーマ */
 export const expenseListQuerySchema = z.object({
   yearMonth: z
@@ -38,4 +44,6 @@ export const expenseListQuerySchema = z.object({
     .optional(),
   categoryId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
+  sortBy: sortBySchema.optional(),
+  sortOrder: sortOrderSchema.optional(),
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -27,7 +27,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 
-// 指摘#5: 既存スキーマから導出し重複を排除
 type Visibility = z.infer<typeof visibilitySchema>
 const visibilityValues = visibilitySchema.options
 
@@ -37,7 +36,6 @@ const visibilityLabels: Record<Visibility, { label: string; color: string; descr
   CATEGORY_TOTAL: { label: "合計のみ", color: "bg-red-500", description: "明細を非表示" },
 }
 
-// 指摘#1: userVisibility を追加
 type Category = {
   id: string
   name: string
@@ -67,31 +65,60 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+/** 編集時の初期値 */
+export type ExpenseInitialValues = {
+  id: string
+  date: string
+  amount: number
+  categoryId?: string
+  description: string
+  memo?: string
+  visibility: Visibility
+  isSubstitute: boolean
+  actualAmount?: number
+}
+
 export function ExpenseForm({
+  mode = "create",
+  initialValues,
   onSuccess,
   onClose,
 }: {
+  mode?: "create" | "edit"
+  initialValues?: ExpenseInitialValues
   onSuccess: () => void
   onClose: () => void
 }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [submitting, setSubmitting] = useState(false)
+  // 編集モードではカテゴリ読込後の visibility 自動上書きを抑制
+  const isEditInitialized = useRef(mode === "edit")
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: new Date().toISOString().slice(0, 10),
-      amount: 0,
-      categoryId: undefined,
-      description: "",
-      memo: "",
-      visibility: "PUBLIC",
-      isSubstitute: false,
-      actualAmount: undefined,
-    },
+    defaultValues: initialValues
+      ? {
+          date: initialValues.date,
+          amount: initialValues.amount,
+          categoryId: initialValues.categoryId,
+          description: initialValues.description,
+          memo: initialValues.memo ?? "",
+          visibility: initialValues.visibility,
+          isSubstitute: initialValues.isSubstitute,
+          actualAmount: initialValues.actualAmount,
+        }
+      : {
+          date: new Date().toISOString().slice(0, 10),
+          amount: 0,
+          categoryId: undefined,
+          description: "",
+          memo: "",
+          visibility: "PUBLIC",
+          isSubstitute: false,
+          actualAmount: undefined,
+        },
   })
 
-  // 指摘#3: AbortController + 例外処理を追加
   useEffect(() => {
     const controller = new AbortController()
 
@@ -114,13 +141,17 @@ export function ExpenseForm({
   const categoryId = form.watch("categoryId")
   const isSubstitute = form.watch("isSubstitute")
 
-  // 指摘#1: userVisibility を優先してセット
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
     [categories, categoryId],
   )
 
+  // カテゴリ変更時に visibility を自動セット（編集モード初回はスキップ）
   useEffect(() => {
+    if (isEditInitialized.current) {
+      isEditInitialized.current = false
+      return
+    }
     if (selectedCategory) {
       form.setValue("visibility", selectedCategory.userVisibility, {
         shouldDirty: true,
@@ -129,7 +160,6 @@ export function ExpenseForm({
     }
   }, [selectedCategory, form])
 
-  // 指摘#2: ネットワークエラー・JSONパースエラーに対応
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true)
     try {
@@ -140,8 +170,13 @@ export function ExpenseForm({
         actualAmount: values.isSubstitute ? values.actualAmount ?? null : null,
       }
 
-      const res = await fetch("/api/expenses", {
-        method: "POST",
+      const url = mode === "edit" && initialValues
+        ? `/api/expenses/${initialValues.id}`
+        : "/api/expenses"
+      const method = mode === "edit" ? "PATCH" : "POST"
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
@@ -154,11 +189,11 @@ export function ExpenseForm({
       }
 
       if (!res.ok) {
-        toast.error(json?.error?.message ?? "登録に失敗しました")
+        toast.error(json?.error?.message ?? (mode === "edit" ? "更新に失敗しました" : "登録に失敗しました"))
         return
       }
 
-      toast.success("支出を登録しました")
+      toast.success(mode === "edit" ? "支出を更新しました" : "支出を登録しました")
       form.reset()
       onSuccess()
       onClose()
@@ -168,6 +203,8 @@ export function ExpenseForm({
       setSubmitting(false)
     }
   })
+
+  const isEdit = mode === "edit"
 
   return (
     <Form {...form}>
@@ -301,7 +338,6 @@ export function ExpenseForm({
           )}
         />
 
-        {/* 指摘#4: id/htmlFor でラベルとチェックボックスを関連付け */}
         <FormField
           name="isSubstitute"
           control={form.control}
@@ -359,7 +395,9 @@ export function ExpenseForm({
             キャンセル
           </Button>
           <Button type="submit" className="flex-1" disabled={submitting}>
-            {submitting ? "登録中..." : "登録"}
+            {submitting
+              ? (isEdit ? "更新中..." : "登録中...")
+              : (isEdit ? "更新" : "登録")}
           </Button>
         </div>
       </form>

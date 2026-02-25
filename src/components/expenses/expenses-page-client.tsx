@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Plus } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Plus, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -11,19 +10,72 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ExpenseForm } from "./expense-form"
+import { ExpenseForm, type ExpenseInitialValues } from "./expense-form"
+import { ExpenseFilters } from "./expense-filters"
+import { ExpenseList } from "./expense-list"
+import { ExpenseSummary } from "./expense-summary"
+import { CategoryTotalSection } from "./category-total-section"
+import { DeleteConfirmDialog } from "./delete-confirm-dialog"
+import { useExpenses, type ExpenseItem } from "./use-expenses"
 
-export function ExpensesPageClient({ userLabel }: { userLabel: string }) {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
+type UserInfo = { id: string; name: string }
 
-  const refresh = useCallback(() => {
-    router.refresh()
-  }, [router])
+export function ExpensesPageClient({
+  userLabel,
+  currentUserId,
+  users,
+}: {
+  userLabel: string
+  currentUserId: string
+  users: UserInfo[]
+}) {
+  const {
+    items,
+    categoryTotals,
+    loading,
+    meta,
+    filters,
+    updateFilter,
+    loadMore,
+    refresh,
+    hasMore,
+  } = useExpenses()
+
+  // 追加ダイアログ
+  const [addOpen, setAddOpen] = useState(false)
+
+  // 編集ダイアログ
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<ExpenseInitialValues | null>(null)
+
+  // 削除ダイアログ
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<ExpenseItem | null>(null)
+
+  const handleEdit = useCallback((expense: ExpenseItem) => {
+    setEditTarget({
+      id: expense.id,
+      date: expense.date.slice(0, 10),
+      amount: expense.amount,
+      categoryId: expense.categoryId ?? undefined,
+      description: expense.description,
+      memo: expense.memo ?? undefined,
+      visibility: expense.visibility,
+      isSubstitute: expense.isSubstitute,
+      actualAmount: expense.actualAmount ?? undefined,
+    })
+    setEditOpen(true)
+  }, [])
+
+  const handleDelete = useCallback((expense: ExpenseItem) => {
+    setDeleteTarget(expense)
+    setDeleteOpen(true)
+  }, [])
 
   return (
     <div className="px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-4">
+        {/* ヘッダー */}
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">支出一覧</h1>
@@ -31,7 +83,7 @@ export function ExpensesPageClient({ userLabel }: { userLabel: string }) {
               {userLabel}さんの支出
             </p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="size-4" />
@@ -44,16 +96,81 @@ export function ExpensesPageClient({ userLabel }: { userLabel: string }) {
               </DialogHeader>
               <ExpenseForm
                 onSuccess={refresh}
-                onClose={() => setOpen(false)}
+                onClose={() => setAddOpen(false)}
               />
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* 支出一覧は今後実装（Issue #15 以降） */}
-        <div className="rounded-lg border p-6 text-center text-muted-foreground">
-          支出一覧は今後実装予定です
-        </div>
+        {/* フィルタ */}
+        <ExpenseFilters
+          filters={filters}
+          onFilterChange={updateFilter}
+          users={users}
+        />
+
+        {/* サマリー */}
+        <ExpenseSummary
+          items={items}
+          categoryTotals={categoryTotals}
+          currentUserId={currentUserId}
+          users={users}
+          totalCount={meta.totalCount}
+        />
+
+        {/* 一覧 */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            <ExpenseList
+              items={items}
+              currentUserId={currentUserId}
+              users={users}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+
+            {/* CATEGORY_TOTAL 集計 */}
+            <CategoryTotalSection categoryTotals={categoryTotals} />
+
+            {/* Load more */}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button variant="outline" onClick={loadMore}>
+                  もっと見る
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 編集ダイアログ */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+            <DialogHeader>
+              <DialogTitle>支出を編集</DialogTitle>
+            </DialogHeader>
+            {editTarget && (
+              <ExpenseForm
+                mode="edit"
+                initialValues={editTarget}
+                onSuccess={refresh}
+                onClose={() => setEditOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* 削除確認ダイアログ */}
+        <DeleteConfirmDialog
+          expense={deleteTarget}
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          onDeleted={refresh}
+        />
       </div>
     </div>
   )
