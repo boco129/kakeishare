@@ -11,7 +11,7 @@ export function SidebarNav({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden h-dvh w-60 flex-col border-r bg-card desktop:flex">
+    <aside data-testid="sidebar-nav" className="hidden h-dvh w-60 flex-col border-r bg-card desktop:flex">
       <div className="border-b px-4 py-4 text-lg font-semibold">
         カケイシェア
       </div>
