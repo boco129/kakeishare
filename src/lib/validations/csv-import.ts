@@ -1,0 +1,27 @@
+// CSV取り込みバリデーションスキーマ
+
+import { z } from "zod"
+
+/** カード種別 */
+export const cardTypeSchema = z.enum(["epos", "mufg_jcb", "mufg_visa"])
+
+/** YYYY-MM 形式 */
+export const yearMonthSchema = z.string().regex(
+  /^\d{4}-(0[1-9]|1[0-2])$/,
+  "YYYY-MM形式で指定してください",
+)
+
+/** CSV取り込みリクエストのバリデーション */
+export const csvImportInputSchema = z.object({
+  cardType: cardTypeSchema,
+  yearMonth: yearMonthSchema,
+  ownerUserId: z.string().cuid("カード所有者IDの形式が不正です"),
+})
+
+export type CsvImportInput = z.infer<typeof csvImportInputSchema>
+
+/** ファイルサイズ上限（5MB） */
+export const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+/** 行数上限 */
+export const MAX_ROW_COUNT = 5000
