@@ -17,9 +17,9 @@ const expenseBaseSchema = z.object({
   memo: z.string().trim().max(1000).nullable().optional(),
 })
 
-/** 支出作成用スキーマ（default 付き） */
+/** 支出作成用スキーマ — visibility は optional（サーバー側で自動解決） */
 export const expenseCreateSchema = expenseBaseSchema.extend({
-  visibility: visibilitySchema.default("PUBLIC"),
+  visibility: visibilitySchema.optional(),
   isSubstitute: z.boolean().default(false),
 })
 
@@ -29,3 +29,13 @@ export type ExpenseCreateInput = z.infer<typeof expenseCreateSchema>
 export const expenseUpdateSchema = expenseBaseSchema.partial()
 
 export type ExpenseUpdateInput = z.infer<typeof expenseUpdateSchema>
+
+/** 支出一覧取得用クエリパラメータスキーマ */
+export const expenseListQuerySchema = z.object({
+  yearMonth: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "YYYY-MM形式(01-12)で指定してください")
+    .optional(),
+  categoryId: z.string().cuid().optional(),
+  userId: z.string().cuid().optional(),
+})
