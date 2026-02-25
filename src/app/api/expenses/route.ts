@@ -11,14 +11,20 @@ import { filterExpensesForUser } from "@/lib/privacy"
 import { resolveVisibility } from "@/lib/expenses"
 import type { Prisma } from "@/generated/prisma/client"
 
-/** GET /api/expenses — 支出一覧（プライバシーフィルター + ページネーション） */
+/** GET /api/expenses — 支出一覧（プライバシーフィルター + ソート + ページネーション） */
 export const GET = withApiHandler(async (request) => {
   const { userId } = await requireAuth()
 
   const url = new URL(request.url)
   const params = Object.fromEntries(url.searchParams)
 
-  const { yearMonth, categoryId, userId: filterUserId } = expenseListQuerySchema.parse(params)
+  const {
+    yearMonth,
+    categoryId,
+    userId: filterUserId,
+    sortBy = "date",
+    sortOrder = "desc",
+  } = expenseListQuerySchema.parse(params)
   const { page, limit } = paginationSchema.parse(params)
 
   // WHERE 条件を組み立て
@@ -39,14 +45,21 @@ export const GET = withApiHandler(async (request) => {
     where.userId = filterUserId
   }
 
-  // 全件取得してプライバシーフィルタ適用（フィルタ後にページング）
+  // 全件取得してプライバシーフィルタ適用（フィルタ後にソート＋ページング）
   const allExpenses = await db.expense.findMany({
     where,
-    orderBy: { date: "desc" },
+    orderBy: { [sortBy]: sortOrder },
     include: { category: { select: { name: true, icon: true } } },
   })
 
   const { items: filteredItems, categoryTotals } = filterExpensesForUser(allExpenses, userId)
+
+  // ソート（フィルタ後に再ソートして整合性を保証）
+  filteredItems.sort((a, b) => {
+    const aVal = sortBy === "amount" ? a.amount : a.date.getTime()
+    const bVal = sortBy === "amount" ? b.amount : b.date.getTime()
+    return sortOrder === "asc" ? aVal - bVal : bVal - aVal
+  })
 
   // ページネーション（フィルタ後の件数基準）
   const totalCount = filteredItems.length

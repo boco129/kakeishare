@@ -1,6 +1,6 @@
 // プライバシーフィルタリング用の型定義
 
-import type { Visibility } from "@/generated/prisma/enums"
+import type { Visibility, ExpenseSource } from "@/generated/prisma/enums"
 
 /** フィルタリング対象の支出データ（Prisma Expense から必要フィールドを抽出） */
 export type ExpenseForPrivacy = {
@@ -12,6 +12,11 @@ export type ExpenseForPrivacy = {
   categoryId: string | null
   visibility: Visibility
   memo: string | null
+  isSubstitute: boolean
+  actualAmount: number | null
+  confirmed: boolean
+  source: ExpenseSource
+  category: { name: string; icon: string } | null
 }
 
 /** フィルタリング済み支出（maskedフラグで型を判別可能） */
@@ -26,6 +31,8 @@ export type FilteredExpense =
 /** CATEGORY_TOTAL 用のカテゴリ別集計 */
 export type CategoryTotal = {
   categoryId: string | null
+  categoryName: string | null
+  categoryIcon: string | null
   totalAmount: number
   count: number
 }

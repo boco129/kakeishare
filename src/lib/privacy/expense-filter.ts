@@ -41,6 +41,11 @@ export function filterExpenseForUser(
         visibility: expense.visibility,
         description: PRIVATE_LABEL,
         memo: null,
+        isSubstitute: false,
+        actualAmount: null,
+        confirmed: expense.confirmed,
+        source: expense.source,
+        category: expense.category,
         masked: true,
       }
 
@@ -68,6 +73,8 @@ export function aggregateCategoryTotals(
     } else {
       map.set(key, {
         categoryId: e.categoryId,
+        categoryName: e.category?.name ?? null,
+        categoryIcon: e.category?.icon ?? null,
         totalAmount: e.amount,
         count: 1,
       })
