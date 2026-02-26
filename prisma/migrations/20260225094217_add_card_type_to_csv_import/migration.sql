@@ -23,7 +23,7 @@ CREATE TABLE "new_csv_imports" (
     CONSTRAINT "csv_imports_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "csv_imports_importedById_fkey" FOREIGN KEY ("importedById") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-INSERT INTO "new_csv_imports" ("cardName", "createdAt", "fileHash", "id", "importedAt", "importedById", "recordCount", "unconfirmedCount", "updatedAt", "userId", "yearMonth") SELECT "cardName", "createdAt", "fileHash", "id", "importedAt", "importedById", "recordCount", "unconfirmedCount", "updatedAt", "userId", "yearMonth" FROM "csv_imports";
+INSERT INTO "new_csv_imports" ("cardType", "cardName", "createdAt", "fileHash", "id", "importedAt", "importedById", "recordCount", "unconfirmedCount", "updatedAt", "userId", "yearMonth") SELECT CASE WHEN "cardName" LIKE '%エポス%' THEN 'epos' WHEN UPPER("cardName") LIKE '%JCB%' THEN 'mufg_jcb' WHEN UPPER("cardName") LIKE '%VISA%' THEN 'mufg_visa' ELSE NULL END, "cardName", "createdAt", "fileHash", "id", "importedAt", "importedById", "recordCount", "unconfirmedCount", "updatedAt", "userId", "yearMonth" FROM "csv_imports";
 DROP TABLE "csv_imports";
 ALTER TABLE "new_csv_imports" RENAME TO "csv_imports";
 CREATE INDEX "csv_imports_userId_idx" ON "csv_imports"("userId");
