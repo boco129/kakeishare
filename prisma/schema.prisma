@@ -183,7 +183,8 @@ model CsvImport {
   id               String   @id @default(cuid())
   userId           String   // カード所有者
   importedById     String   // 実際に取り込んだユーザー
-  cardName         String
+  cardType         String   // カード種別ID（epos, mufg_jcb, mufg_visa）
+  cardName         String   // 表示用カード名
   yearMonth        String   // "YYYY-MM" 形式
   importedAt       DateTime @default(now())
   recordCount      Int      @default(0)
@@ -199,6 +200,7 @@ model CsvImport {
 
   @@index([userId])
   @@index([importedById])
+  @@index([userId, cardType, yearMonth])
   @@unique([userId, fileHash])
   @@map("csv_imports")
 }

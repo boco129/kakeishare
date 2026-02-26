@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Plus, Loader2 } from "lucide-react"
+import { Plus, Loader2, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,6 +17,8 @@ import { ExpenseSummary } from "./expense-summary"
 import { CategoryTotalSection } from "./category-total-section"
 import { DeleteConfirmDialog } from "./delete-confirm-dialog"
 import { useExpenses, type ExpenseItem } from "./use-expenses"
+import { CsvImportDialog } from "@/components/csv/csv-import-dialog"
+import { CsvImportHistory } from "@/components/csv/csv-import-history"
 
 type UserInfo = { id: string; name: string }
 
@@ -40,6 +42,9 @@ export function ExpensesPageClient({
     refresh,
     hasMore,
   } = useExpenses()
+
+  // CSV取り込みダイアログ
+  const [csvImportOpen, setCsvImportOpen] = useState(false)
 
   // 追加ダイアログ
   const [addOpen, setAddOpen] = useState(false)
@@ -83,13 +88,18 @@ export function ExpensesPageClient({
               {userLabel}さんの支出
             </p>
           </div>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="size-4" />
-                支出を追加
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setCsvImportOpen(true)}>
+              <FileUp className="size-4" />
+              CSV取込
+            </Button>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="size-4" />
+                  追加
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
               <DialogHeader>
                 <DialogTitle>支出を追加</DialogTitle>
@@ -100,6 +110,7 @@ export function ExpensesPageClient({
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* フィルタ */}
@@ -171,6 +182,17 @@ export function ExpensesPageClient({
           onOpenChange={setDeleteOpen}
           onDeleted={refresh}
         />
+
+        {/* CSV取り込みダイアログ */}
+        <CsvImportDialog
+          open={csvImportOpen}
+          onOpenChange={setCsvImportOpen}
+          users={users}
+          onImported={refresh}
+        />
+
+        {/* CSV取り込み履歴 */}
+        <CsvImportHistory yearMonth={filters.yearMonth} />
       </div>
     </div>
   )

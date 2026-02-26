@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { getDisplayName } from "@/lib/auth-utils"
+import { CsvImportStatusWidget } from "@/components/csv/csv-import-status"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -13,8 +14,13 @@ export default async function DashboardPage() {
           ようこそ、{getDisplayName(session)}さん
         </p>
 
+        {/* CSV取り込みステータス */}
+        <div className="rounded-lg border p-4">
+          <CsvImportStatusWidget />
+        </div>
+
         <div className="rounded-lg border p-6 text-center text-muted-foreground">
-          ダッシュボードは今後実装予定です
+          その他のダッシュボード機能は今後実装予定です
         </div>
       </div>
     </div>

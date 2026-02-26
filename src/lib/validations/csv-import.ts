@@ -15,7 +15,7 @@ export const yearMonthSchema = z.string().regex(
 export const csvImportInputSchema = z.object({
   cardType: cardTypeSchema,
   yearMonth: yearMonthSchema,
-  ownerUserId: z.string().cuid("カード所有者IDの形式が不正です"),
+  ownerUserId: z.string().min(1, "カード所有者IDは必須です"),
 })
 
 export type CsvImportInput = z.infer<typeof csvImportInputSchema>
