@@ -3,19 +3,9 @@
 import { AuthError } from "next-auth"
 import { isRedirectError } from "next/dist/client/components/redirect-error"
 import { signIn } from "@/auth"
+import { safeRedirectPath } from "@/lib/auth/safe-redirect-path"
 
 export type LoginState = { error: string | null }
-
-// オープンリダイレクト防止: 相対パスのみ許可、// プロトコル相対URLを拒否
-function safeRedirectPath(raw: string): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/"
-  try {
-    const u = new URL(raw, "http://localhost")
-    return `${u.pathname}${u.search}${u.hash}`
-  } catch {
-    return "/"
-  }
-}
 
 export async function loginAction(
   _prev: LoginState,

@@ -10,7 +10,7 @@ export function LogoutButton() {
         await signOut({ redirectTo: "/login" })
       }}
     >
-      <Button type="submit" variant="outline" className="w-full gap-2">
+      <Button data-testid="logout-button" type="submit" variant="outline" className="w-full gap-2">
         <LogOut className="h-4 w-4" />
         ログアウト
       </Button>
