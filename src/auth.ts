@@ -22,6 +22,7 @@ const DUMMY_PASSWORD_HASH =
   "$2a$12$C6UzMDM.H6dfI/f/IKxGhuY2L6nL6Nq35p3xNmPR9UCeFVLtZLk6a"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
 
   providers: [
