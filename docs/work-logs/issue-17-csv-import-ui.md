@@ -67,6 +67,16 @@
 | APIレスポンスの型安全性 | 将来のリファクタ対象として保留（既存パターンに合わせる） |
 | コンポーネント分割不足 | 現規模では1ファイル維持、機能追加時に分割検討 |
 
+## マージ時の追加修正（2026-02-26）
+
+### マイグレーションSQL修正（Codexレビュー指摘）
+- **問題**: `INSERT INTO new_csv_imports` に `cardType` カラムが含まれておらず、既存データがある環境でマイグレーションが失敗する
+- **修正**: `cardName` から CASE 式で `cardType` を導出する INSERT に変更
+- **Codex指摘対応**:
+  - `ELSE 'unknown'` → `ELSE NULL` に変更（fail-fast、不正データの恒久化防止）
+  - `UPPER()` 追加（SQLite/PostgreSQL間の LIKE case-sensitivity 差を吸収）
+  - PostgreSQL非互換（PRAGMA構文）は現時点SQLite開発環境のみのため許容
+
 ## 将来の課題
 - APIレスポンスの型安全性向上（zod検証 or 共通型定義）
 - csv-import-dialog.tsxのコンポーネント分割（MetaStep/UploadStep/PreviewStep + hooks化）
