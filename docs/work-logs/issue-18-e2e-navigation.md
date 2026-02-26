@@ -65,7 +65,30 @@
 - ローカルE2Eでは`pnpm dev`を使用（.envを自動読み込み）
 - CIではGitHub Actionsのenvでプロセスに直接渡すため問題なし
 
+## CI E2Eタイムアウト修正（2026-02-26）
+
+### 問題
+GitHub ActionsのE2Eテストが15分タイムアウトで失敗。ログに以下のエラーが繰り返し出力：
+```
+[WebServer] rS: Must pass `secret` if not set to JWT getToken(). Read more at https://errors.authjs.dev#missingsecret
+```
+
+### 根本原因
+`middleware.ts` の `getToken({ req: request })` で `secret` が未指定だった。
+CIでは `next start`（本番モード）で起動するため `.env` を自動読み込みしない。
+GitHub Actionsのジョブレベル `env` で `AUTH_SECRET` を設定していたが、`next-auth/jwt` の `getToken()` は NextAuth本体とは独立したモジュールのため `AUTH_SECRET` 環境変数の自動解決に失敗していた。
+
+### 修正内容
+| ファイル | 変更内容 |
+|---------|---------|
+| `middleware.ts` | `getToken()` に `secret: process.env.AUTH_SECRET` を明示的に渡す |
+| `src/auth.ts` | `NextAuth()` 設定に `secret` を明示（整合性確保） |
+
+### Codex相談結果
+- 修正案A（middleware.tsへのsecret明示）が必須、修正案B（auth.tsへのsecret明示）が補強
+- 両方を適用するのが最適と合意
+
 ## 将来の課題
 - `@axe-core/playwright` によるナビ領域のa11yチェック追加検討
 - テストブラウザの拡張（Firefox, WebKit）
-- Next.js のTurbopack Edge Runtime env var問題の追跡
+- ~~Next.js のTurbopack Edge Runtime env var問題の追跡~~ → secret明示渡しで解消済み
