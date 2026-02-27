@@ -24,6 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "csv-parse": "^6.1.0",
+    "geist": "1.7.0",
     "iconv-lite": "^0.7.2",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
