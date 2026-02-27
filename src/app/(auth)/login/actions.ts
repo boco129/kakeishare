@@ -9,7 +9,11 @@ import { peekRateLimit } from "@/lib/auth/rate-limiter"
 import { logAuthEvent } from "@/lib/auth/audit-log"
 import { extractIp } from "@/lib/auth/client-ip"
 
-export type LoginState = { error: string | null }
+export type LoginState = {
+  error: string | null
+  errorType?: "credentials" | "rate_limit" | "system"
+  errorSeq: number
+}
 
 export async function loginAction(
   _prev: LoginState,
@@ -26,25 +30,37 @@ export async function loginAction(
   // UX向上: ブロック状態を事前チェック（消費しない読み取り専用）
   // 実際の消費・制限はauthorize側で行うのでバイパス不可
   const rateLimit = peekRateLimit(ip, email)
+  const nextSeq = _prev.errorSeq + 1
+
   if (!rateLimit.allowed) {
     logAuthEvent("rate_limit_blocked", { ip, email })
     const minutes = Math.ceil(rateLimit.retryAfterMs / 60000)
     return {
       error: `ログイン試行回数が制限を超えました。約${minutes}分後に再試行してください。`,
+      errorType: "rate_limit",
+      errorSeq: nextSeq,
     }
   }
 
   try {
     await signIn("credentials", { email, password, redirectTo })
-    return { error: null }
+    return { error: null, errorSeq: nextSeq }
   } catch (e) {
     if (e instanceof AuthError && e.type === "CredentialsSignin") {
-      return { error: "メールアドレスまたはパスワードが正しくありません。" }
+      return {
+        error: "メールアドレスまたはパスワードが正しくありません。",
+        errorType: "credentials",
+        errorSeq: nextSeq,
+      }
     }
     // signIn 成功時のリダイレクトも Error として throw されるため再 throw
     if (isRedirectError(e)) {
       throw e
     }
-    return { error: "ログインに失敗しました。時間をおいて再試行してください。" }
+    return {
+      error: "ログインに失敗しました。時間をおいて再試行してください。",
+      errorType: "system",
+      errorSeq: nextSeq,
+    }
   }
 }
