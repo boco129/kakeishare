@@ -5,6 +5,9 @@ import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET
+if (!authSecret) {
+  throw new Error("AUTH_SECRET または NEXTAUTH_SECRET を設定してください")
+}
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret: authSecret })
