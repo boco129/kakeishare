@@ -161,6 +161,11 @@ pnpm prisma studio            # DB GUIを起動
   - マージ後、リモートにpushし、該当Issueをcloseする
 - **mainブランチには直接コミットしない**
   - mainへのマージはPhase完了時など節目で行う
+- **CI連携ブランチへのpush後はGitHub Actionsの結果を確認する**
+  - `main`, `develop` ブランチへのpush時に Unit Tests と E2E Tests が自動実行される
+  - `gh run list --branch <ブランチ名> --limit 2` で最新のrun結果を確認すること
+  - CIが失敗した場合は `gh run view <run-id> --log-failed` で原因を調査し、修正してから次の作業に進むこと
+  - pull_request作成時にも同様にCIが走るため、マージ前に全runがsuccessであることを確認する
 - **作業完了後は対応ログを作成する**
   - `docs/work-logs/issue-<番号>-<概要>.md` に対応内容をまとめる
   - 対応日、ブランチ名、作成・変更ファイル一覧、実装詳細、レビュー指摘と対応、将来の課題を含める
