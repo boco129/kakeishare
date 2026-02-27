@@ -1,6 +1,7 @@
 // 支出バリデーションスキーマ
 
 import { z } from "zod"
+import { yearMonthSchema } from "./year-month"
 
 /** 支出の visibility 値 */
 export const visibilitySchema = z.enum(["PUBLIC", "AMOUNT_ONLY", "CATEGORY_TOTAL"])
@@ -8,7 +9,7 @@ export const visibilitySchema = z.enum(["PUBLIC", "AMOUNT_ONLY", "CATEGORY_TOTAL
 /** 基本スキーマ（default なし） — 更新スキーマの partial() 用 */
 const expenseBaseSchema = z.object({
   date: z.coerce.date(),
-  amount: z.number().int().positive(),
+  amount: z.number().int().refine((v) => v !== 0, "金額は0以外で入力してください"),
   description: z.string().trim().min(1).max(200),
   categoryId: z.string().cuid().nullable().optional(),
   visibility: visibilitySchema,
@@ -38,10 +39,7 @@ export const sortOrderSchema = z.enum(["asc", "desc"]).default("desc")
 
 /** 支出一覧取得用クエリパラメータスキーマ */
 export const expenseListQuerySchema = z.object({
-  yearMonth: z
-    .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "YYYY-MM形式(01-12)で指定してください")
-    .optional(),
+  yearMonth: yearMonthSchema.optional(),
   categoryId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
   sortBy: sortBySchema.optional(),
