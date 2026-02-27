@@ -5,7 +5,8 @@ import { NextResponse } from "next/server"
 import { resetAllRateLimits } from "@/lib/auth/rate-limiter"
 
 export async function POST() {
-  if (process.env.NODE_ENV === "production") {
+  // 本番環境では無効化（ただしCI E2Eテスト環境は許可）
+  if (process.env.NODE_ENV === "production" && process.env.CI !== "true") {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
