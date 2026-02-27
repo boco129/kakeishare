@@ -1,15 +1,13 @@
 // CSV取り込みバリデーションスキーマ
 
 import { z } from "zod"
+import { yearMonthSchema } from "./year-month"
 
 /** カード種別 */
 export const cardTypeSchema = z.enum(["epos", "mufg_jcb", "mufg_visa"])
 
-/** YYYY-MM 形式 */
-export const yearMonthSchema = z.string().regex(
-  /^\d{4}-(0[1-9]|1[0-2])$/,
-  "YYYY-MM形式で指定してください",
-)
+// yearMonthSchema は year-month.ts から再エクスポート
+export { yearMonthSchema }
 
 /** CSV取り込みリクエストのバリデーション */
 export const csvImportInputSchema = z.object({
