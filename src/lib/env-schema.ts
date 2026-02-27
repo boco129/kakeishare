@@ -40,8 +40,9 @@ export const envSchema = z.object({
     ),
 
   AUTH_URL: z
-    .string({ error: "AUTH_URL が設定されていません" })
-    .url("AUTH_URL は有効なURL形式である必要があります（例: http://localhost:3000）"),
+    .string()
+    .url("AUTH_URL は有効なURL形式である必要があります（例: http://localhost:3000）")
+    .optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -67,12 +68,19 @@ export function validateEnv(
     )
   }
 
-  // 本番環境では AUTH_URL に https を強制（ビルドフェーズは除外）
+  // 本番環境では AUTH_URL 必須 + https 強制（ビルドフェーズは除外）
   const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build"
-  if (nodeEnv === "production" && !isBuildPhase && !result.data.AUTH_URL.startsWith("https://")) {
-    throw new Error(
-      "\n❌ 環境変数の設定に問題があります:\n\n  AUTH_URL: 本番環境では https:// で始まる必要があります\n\n.env ファイルを確認してください。\n"
-    )
+  if (nodeEnv === "production" && !isBuildPhase) {
+    if (!result.data.AUTH_URL) {
+      throw new Error(
+        "\n❌ 環境変数の設定に問題があります:\n\n  AUTH_URL: 本番環境では必須です\n\n.env ファイルを確認してください。\n"
+      )
+    }
+    if (!result.data.AUTH_URL.startsWith("https://")) {
+      throw new Error(
+        "\n❌ 環境変数の設定に問題があります:\n\n  AUTH_URL: 本番環境では https:// で始まる必要があります\n\n.env ファイルを確認してください。\n"
+      )
+    }
   }
 
   return result.data

@@ -80,7 +80,6 @@ describe("validateEnv", () => {
     it("NEXTAUTH_SECRET からフォールバックする", () => {
       const env = {
         DATABASE_URL: validEnv.DATABASE_URL,
-        AUTH_URL: validEnv.AUTH_URL,
         NEXTAUTH_SECRET: validEnv.AUTH_SECRET,
       }
       expect(() => validateEnv(env)).not.toThrow()
@@ -99,9 +98,9 @@ describe("validateEnv", () => {
 
   // --- AUTH_URL ---
   describe("AUTH_URL", () => {
-    it("未設定の場合にエラー", () => {
+    it("未設定でも開発環境ではエラーにならない", () => {
       const env = { ...validEnv, AUTH_URL: undefined }
-      expect(() => validateEnv(env)).toThrow()
+      expect(() => validateEnv(env)).not.toThrow()
     })
 
     it("不正なURL形式でエラー", () => {
@@ -120,6 +119,11 @@ describe("validateEnv", () => {
 
     it("有効なURLは通る", () => {
       expect(() => validateEnv(validEnv)).not.toThrow()
+    })
+
+    it("production で未設定の場合にエラー", () => {
+      const env = { ...validEnv, AUTH_URL: undefined }
+      expect(() => validateEnv(env, "production")).toThrow(/AUTH_URL/)
     })
 
     it("production では http:// でエラー", () => {
@@ -141,6 +145,12 @@ describe("validateEnv", () => {
         AUTH_SECRET: validEnv.AUTH_SECRET,
         AUTH_URL: validEnv.AUTH_URL,
       })
+    })
+
+    it("AUTH_URL未設定の場合はundefinedを返す", () => {
+      const env = { ...validEnv, AUTH_URL: undefined }
+      const result = validateEnv(env)
+      expect(result.AUTH_URL).toBeUndefined()
     })
   })
 })

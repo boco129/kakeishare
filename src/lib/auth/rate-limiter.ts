@@ -99,6 +99,11 @@ export class InMemoryRateLimitStore implements RateLimitStore {
   clear(key: string): void {
     this.buckets.delete(key)
   }
+
+  /** 全エントリをクリアする（テスト・開発用） */
+  resetAll(): void {
+    this.buckets.clear()
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -209,4 +214,12 @@ export function clearRateLimit(ip: string, email: string): void {
   const s = getStore()
   s.clear(emailKey(email))
   s.clear(emailIpKey(email, ip))
+}
+
+/** 全レート制限状態をリセットする（テスト・開発用） */
+export function resetAllRateLimits(): void {
+  const s = getStore()
+  if (s instanceof InMemoryRateLimitStore) {
+    s.resetAll()
+  }
 }

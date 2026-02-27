@@ -9,14 +9,14 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
   webServer: {
     // CI: env vars are set at job level, so `next start` can access them
     // Local: `next dev` loads .env automatically
     command: process.env.CI ? "pnpm start -p 3000" : "pnpm dev -p 3000",
-    url: "http://127.0.0.1:3000",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
