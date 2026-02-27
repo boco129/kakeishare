@@ -7,6 +7,9 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 
 import { db } from "@/lib/db"
+import { checkRateLimit, clearRateLimit } from "@/lib/auth/rate-limiter"
+import { logAuthEvent } from "@/lib/auth/audit-log"
+import { getClientIpFromRequest } from "@/lib/auth/client-ip"
 
 // 型ガード: Prisma Role enum の値かどうか判定
 const isAppRole = (v: unknown): v is "ADMIN" | "MEMBER" =>
@@ -31,11 +34,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "メールアドレス", type: "email" },
         password: { label: "パスワード", type: "password" },
       },
-      async authorize(rawCredentials) {
+      async authorize(rawCredentials, request) {
         const parsed = credentialsSchema.safeParse(rawCredentials)
         if (!parsed.success) return null
 
         const { email, password } = parsed.data
+        const ip = getClientIpFromRequest(request)
+
+        // レート制限チェック（原子的にカウント消費）
+        const rateLimit = checkRateLimit(ip, email)
+        if (!rateLimit.allowed) {
+          logAuthEvent("rate_limit_blocked", { ip, email })
+          return null
+        }
 
         const user = await db.user.findUnique({
           where: { email },
@@ -51,11 +62,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user) {
           // タイミング差を減らすためダミー照合
           await bcrypt.compare(password, DUMMY_PASSWORD_HASH)
+          logAuthEvent("login_failure", { ip, email, reason: "user_not_found" })
           return null
         }
 
         const isValid = await bcrypt.compare(password, user.password)
-        if (!isValid) return null
+        if (!isValid) {
+          logAuthEvent("login_failure", { ip, email, reason: "invalid_password" })
+          return null
+        }
+
+        // 成功時: email系カウンタをクリア
+        clearRateLimit(ip, email)
+        logAuthEvent("login_success", { ip, email })
 
         return {
           id: user.id,
