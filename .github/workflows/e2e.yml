@@ -12,6 +12,7 @@ jobs:
     env:
       DATABASE_URL: file:./prisma/e2e.db
       AUTH_SECRET: e2e-test-secret-${{ github.run_id }}-${{ github.run_attempt }}-kakeishare-ci
+      AUTH_AUDIT_SECRET: e2e-audit-secret-for-ci-testing
       AUTH_URL: http://127.0.0.1:3000
       AUTH_TRUST_HOST: "true"
 
