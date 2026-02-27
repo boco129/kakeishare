@@ -4,6 +4,11 @@ const email = process.env.E2E_ADMIN_EMAIL ?? "taro@example.com"
 const password = process.env.E2E_ADMIN_PASSWORD ?? "password123"
 
 test.describe("認証フロー回帰", () => {
+  test.beforeAll(async ({ request }) => {
+    // レート制限をリセット（前回のテスト実行のカウンタが残っている場合に備える）
+    await request.post("/api/dev/reset-rate-limit")
+  })
+
   test("正しい認証情報でログイン → / へ遷移", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "unauth")
     await page.goto("/login")
