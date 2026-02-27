@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 15
     env:
       DATABASE_URL: file:./prisma/e2e.db
-      AUTH_SECRET: ${{ github.run_id }}-${{ github.run_attempt }}-e2e
+      AUTH_SECRET: e2e-test-secret-${{ github.run_id }}-${{ github.run_attempt }}-kakeishare-ci
       AUTH_URL: http://127.0.0.1:3000
       AUTH_TRUST_HOST: "true"
 
