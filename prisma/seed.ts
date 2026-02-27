@@ -6,6 +6,7 @@ import { PrismaClient } from "../src/generated/prisma/client"
 import { Visibility, ExpenseSource, Role } from "../src/generated/prisma/enums"
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 import bcrypt from "bcryptjs"
+import { assertSafeToSeed } from "./seed-guard"
 
 // JST固定で日付生成（タイムゾーン依存を回避）
 const d = (ymd: string) => new Date(`${ymd}T00:00:00+09:00`)
@@ -299,8 +300,11 @@ export async function seedDatabase(prisma: PrismaClient) {
 
 /** CLI実行用: PrismaClientを生成してseedを実行し、結果を表示する */
 async function runSeed() {
+  // 本番DB保護ガード（検証済みURLを返す）
+  const safeDbUrl = assertSafeToSeed()
+
   const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+    url: safeDbUrl,
   })
   const prisma = new PrismaClient({ adapter })
   try {
