@@ -1,21 +1,18 @@
 // prisma/seed.ts — カケイシェア シードデータ投入
 // 実行: pnpm prisma db seed
 
+import { pathToFileURL } from "node:url"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { Visibility, ExpenseSource, Role } from "../src/generated/prisma/enums"
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 import bcrypt from "bcryptjs"
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-})
-const prisma = new PrismaClient({ adapter })
-
 // JST固定で日付生成（タイムゾーン依存を回避）
 const d = (ymd: string) => new Date(`${ymd}T00:00:00+09:00`)
 const dt = (isoLocal: string) => new Date(`${isoLocal}+09:00`)
 
-async function main() {
+/** テストから呼び出し可能なseed関数。PrismaClientを外部から注入する。 */
+export async function seedDatabase(prisma: PrismaClient) {
   const password = await bcrypt.hash("password123", 10)
 
   await prisma.$transaction(async (tx) => {
@@ -297,25 +294,39 @@ async function main() {
       ],
     })
 
-    // 投入結果の確認
-    const counts = {
-      users: await tx.user.count(),
-      categories: await tx.category.count(),
-      categoryVisibilitySettings: await tx.categoryVisibilitySetting.count(),
-      budgets: await tx.budget.count(),
-      expenses: await tx.expense.count(),
-      installments: await tx.installment.count(),
-      csvImports: await tx.csvImport.count(),
-    }
-
-    console.log("✅ Seed data inserted successfully")
-    console.log(counts)
   })
 }
 
-main()
-  .catch((e) => {
+/** CLI実行用: PrismaClientを生成してseedを実行し、結果を表示する */
+async function runSeed() {
+  const adapter = new PrismaBetterSqlite3({
+    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+  })
+  const prisma = new PrismaClient({ adapter })
+  try {
+    await seedDatabase(prisma)
+
+    // CLI実行時のみ投入結果を表示
+    const counts = {
+      users: await prisma.user.count(),
+      categories: await prisma.category.count(),
+      categoryVisibilitySettings: await prisma.categoryVisibilitySetting.count(),
+      budgets: await prisma.budget.count(),
+      expenses: await prisma.expense.count(),
+      installments: await prisma.installment.count(),
+      csvImports: await prisma.csvImport.count(),
+    }
+    console.log("✅ Seed data inserted successfully")
+    console.log(counts)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+// CLI実行時のみ runSeed() を呼び出す（import時はスキップ）
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runSeed().catch((e) => {
     console.error(e)
     process.exit(1)
   })
-  .finally(() => prisma.$disconnect())
+}
