@@ -109,6 +109,15 @@ describe("assertSafeToSeed", () => {
       ).not.toThrow()
     })
 
+    it("E2E用SQLite URL (file:./prisma/e2e.db) なら正常", () => {
+      expect(() =>
+        assertSafeToSeed({
+          env: { DATABASE_URL: "file:./prisma/e2e.db" },
+          argv: ["node", "seed.ts"],
+        })
+      ).not.toThrow()
+    })
+
     it("一時ディレクトリのSQLite (file:/tmp/...) なら正常", () => {
       expect(() =>
         assertSafeToSeed({

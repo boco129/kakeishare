@@ -10,6 +10,7 @@ const DEFAULT_DB_URL = "file:./prisma/dev.db"
 // 完全一致で許可する正規化済みパス（CWD相対で解決）
 const ALLOWED_EXACT_PATHS = new Set([
   path.resolve("./prisma/dev.db"),
+  path.resolve("./prisma/e2e.db"), // GitHub Actions E2E用
 ])
 
 // プレフィックス一致で許可する正規化済みパス（テスト用一時DB等）
