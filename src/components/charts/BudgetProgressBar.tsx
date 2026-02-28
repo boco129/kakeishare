@@ -7,10 +7,11 @@ type Props = {
   data: BudgetSummary
 }
 
-/** 予算消化率に応じた色クラスを返す */
+/** 予算消化率に応じた色クラスを返す（設計書準拠: 4段階） */
 function getBarColorClass(rate: number) {
   if (rate >= 100) return "bg-destructive"
-  if (rate >= 80) return "bg-amber-500"
+  if (rate >= 80) return "bg-orange-500"
+  if (rate >= 60) return "bg-yellow-500"
   return "bg-primary"
 }
 
