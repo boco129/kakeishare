@@ -1,11 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Props = {
   yearMonth: string
+  /** 遷移先のベースパス（省略時は現在のパスを使用） */
+  basePath?: string
 }
 
 function parseYearMonth(ym: string) {
@@ -23,12 +25,14 @@ function addMonth(ym: string, delta: number) {
   return formatYearMonth(d.getFullYear(), d.getMonth() + 1)
 }
 
-export function MonthSelector({ yearMonth }: Props) {
+export function MonthSelector({ yearMonth, basePath }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
+  const resolvedBase = basePath ?? pathname
   const { year, month } = parseYearMonth(yearMonth)
 
   const navigate = (ym: string) => {
-    router.push(`/?yearMonth=${ym}`)
+    router.push(`${resolvedBase}?yearMonth=${ym}`)
   }
 
   return (

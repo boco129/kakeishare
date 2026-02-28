@@ -80,6 +80,12 @@ export type InstallmentItem = {
   visibility: Visibility
 }
 
+/** カテゴリ別月次推移（レビュー画面用） */
+export type CategoryTrendEntry = {
+  yearMonth: string
+  categories: { categoryId: string; categoryName: string; amount: number }[]
+}
+
 /** CSV取り込みステータス */
 export type CsvImportStatus = {
   lastImportDate: Date | null

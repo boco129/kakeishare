@@ -1,22 +1,58 @@
+import { Suspense } from "react"
+import { redirect } from "next/navigation"
 import { auth } from "@/auth"
-import { getDisplayName } from "@/lib/auth-utils"
+import { MonthSelector } from "@/components/dashboard/MonthSelector"
+import { ReviewDataSection } from "@/components/review/ReviewDataSection"
 
-export default async function ReviewPage() {
+/** 現在の YYYY-MM を返す */
+function getCurrentYearMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+}
+
+/** yearMonth パラメータのバリデーション */
+function validateYearMonth(value: string | undefined): string {
+  if (!value) return getCurrentYearMonth()
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return value
+  return getCurrentYearMonth()
+}
+
+export default async function ReviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ yearMonth?: string }>
+}) {
   const session = await auth()
+  if (!session?.user?.id) redirect("/login")
+
+  const params = await searchParams
+  const yearMonth = validateYearMonth(params.yearMonth)
 
   return (
     <div className="px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold">家計レビュー</h1>
-
-        <p className="text-muted-foreground">
-          {getDisplayName(session)}さんの家計レビュー
-        </p>
-
-        <div className="rounded-lg border p-6 text-center text-muted-foreground">
-          家計レビューは今後実装予定です
-        </div>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <MonthSelector yearMonth={yearMonth} basePath="/review" />
+        <Suspense
+          key={yearMonth}
+          fallback={<ReviewSkeleton />}
+        >
+          <ReviewDataSection yearMonth={yearMonth} userId={session.user.id} />
+        </Suspense>
       </div>
+    </div>
+  )
+}
+
+/** レビュー画面用スケルトン */
+function ReviewSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* タブ */}
+      <div className="h-10 rounded-lg bg-muted animate-pulse" />
+      {/* カード群 */}
+      <div className="h-[120px] rounded-lg bg-muted animate-pulse" />
+      <div className="h-[200px] rounded-lg bg-muted animate-pulse" />
+      <div className="h-[240px] rounded-lg bg-muted animate-pulse" />
     </div>
   )
 }

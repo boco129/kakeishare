@@ -13,6 +13,7 @@ import type {
   InstallmentSummary,
   InstallmentItem,
   CsvImportStatus,
+  CategoryTrendEntry,
 } from "./types"
 
 // ============================================================
@@ -378,6 +379,116 @@ export async function getInstallmentSummary(
   }
 
   return { activeCount, totalMonthlyAmount, totalRemainingAmount, items }
+}
+
+// ============================================================
+// カテゴリ別月次推移（レビュー画面用）
+// ============================================================
+
+/**
+ * カテゴリ別月次推移
+ *
+ * 直近 N ヶ月の月×カテゴリ別支出を返す。
+ * 上位 topN カテゴリのみ系列として含め、残りは除外。
+ *
+ * 2段階クエリで最適化:
+ * 1. groupBy でカテゴリ別総額を集計し TOP N を決定
+ * 2. TOP N カテゴリのみ絞り込んで明細を取得
+ */
+export async function aggregateCategoryTrend(
+  months: number,
+  baseYearMonth: string,
+  topN: number = 5,
+): Promise<CategoryTrendEntry[]> {
+  if (months <= 0) return []
+
+  const yearMonths = getPastMonths(months, baseYearMonth)
+  const oldest = yearMonths[yearMonths.length - 1]
+  const newest = yearMonths[0]
+  const { start } = toMonthRange(oldest)
+  const { end } = toMonthRange(newest)
+
+  const dateRange = { gte: start, lt: end }
+
+  const UNCATEGORIZED_ID = "__uncategorized__"
+
+  // Stage 1: groupBy でカテゴリ別総額を集計し TOP N を決定
+  const grouped = await db.expense.groupBy({
+    by: ["categoryId"],
+    where: { date: dateRange },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: "desc" } },
+    take: topN,
+  })
+
+  if (grouped.length === 0) return []
+
+  // null（未分類）を含む上位カテゴリを処理
+  const hasUncategorized = grouped.some((g) => g.categoryId === null)
+  const nonNullIds = grouped
+    .map((g) => g.categoryId)
+    .filter((id): id is string => id !== null)
+
+  // カテゴリ名を取得
+  const categories = nonNullIds.length > 0
+    ? await db.category.findMany({
+        where: { id: { in: nonNullIds } },
+        select: { id: true, name: true },
+      })
+    : []
+  const catNameMap = new Map(categories.map((c) => [c.id, c.name]))
+
+  // TOP N カテゴリの順序を保持（金額降順）
+  const topCategories = grouped.map((g) => ({
+    id: g.categoryId ?? UNCATEGORIZED_ID,
+    name: g.categoryId ? (catNameMap.get(g.categoryId) ?? "未分類") : "未分類",
+  }))
+
+  // Stage 2: TOP N カテゴリのみ絞り込んで明細を取得
+  const whereConditions: Parameters<typeof db.expense.findMany>[0] = {
+    where: {
+      date: dateRange,
+      ...(hasUncategorized && nonNullIds.length > 0
+        ? { OR: [{ categoryId: { in: nonNullIds } }, { categoryId: null }] }
+        : hasUncategorized
+          ? { categoryId: null }
+          : { categoryId: { in: nonNullIds } }),
+    },
+    select: { date: true, amount: true, categoryId: true },
+  }
+  const expenses = await db.expense.findMany(whereConditions)
+
+  // 月×カテゴリ別に集計
+  const grid = new Map<string, Map<string, number>>()
+  for (const ym of yearMonths) {
+    const catMap = new Map<string, number>()
+    for (const c of topCategories) {
+      catMap.set(c.id, 0)
+    }
+    grid.set(ym, catMap)
+  }
+  for (const e of expenses) {
+    const catId = e.categoryId ?? UNCATEGORIZED_ID
+    const d = e.date
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    const catMap = grid.get(ym)
+    if (catMap && catMap.has(catId)) {
+      catMap.set(catId, (catMap.get(catId) ?? 0) + e.amount)
+    }
+  }
+
+  // 昇順（古い月→新しい月）で返却
+  return yearMonths.reverse().map((ym) => {
+    const catMap = grid.get(ym)!
+    return {
+      yearMonth: ym,
+      categories: topCategories.map((c) => ({
+        categoryId: c.id,
+        categoryName: c.name,
+        amount: catMap.get(c.id) ?? 0,
+      })),
+    }
+  })
 }
 
 // ============================================================
