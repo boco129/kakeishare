@@ -11,6 +11,7 @@ import { buildChatContext } from "@/lib/ai/build-chat-context"
 import { consumeChatRateLimit } from "@/lib/ai/chat-rate-limit"
 import { logTokenUsage } from "@/lib/ai/usage-logger"
 import { env } from "@/lib/env"
+import { getAIMockMode, MOCK_CHAT_RESPONSE } from "@/lib/ai/test-mode"
 
 export const maxDuration = 60
 
@@ -41,8 +42,9 @@ export async function POST(request: Request) {
     return jsonError("INTERNAL_ERROR", "認証エラー", 500)
   }
 
-  // 2. AI利用可能チェック
-  if (!isAIAvailable(env)) {
+  // 2. AI利用可能チェック（モックモード対応）
+  const mockMode = getAIMockMode()
+  if (mockMode === "unavailable" || (!isAIAvailable(env) && mockMode === "off")) {
     return jsonError("INTERNAL_ERROR", "AI機能が設定されていません", 503)
   }
 
@@ -65,7 +67,42 @@ export async function POST(request: Request) {
     )
   }
 
-  // 5. コンテキスト生成
+  // 5. モックモード処理
+  if (mockMode === "success" || mockMode === "error") {
+    const encoder = new TextEncoder()
+    const mockStream = new ReadableStream({
+      start(controller) {
+        if (mockMode === "success") {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "text", text: MOCK_CHAT_RESPONSE })}\n\n`,
+            ),
+          )
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "done", remaining: rateLimit.remaining })}\n\n`,
+            ),
+          )
+        } else {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "error", message: "AI応答の生成に失敗しました" })}\n\n`,
+            ),
+          )
+        }
+        controller.close()
+      },
+    })
+    return new Response(mockStream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    })
+  }
+
+  // 6. コンテキスト生成
   let context: string
   try {
     context = await buildChatContext(userId, parsed.yearMonth)
@@ -74,7 +111,7 @@ export async function POST(request: Request) {
     return jsonError("INTERNAL_ERROR", "データの取得に失敗しました", 500)
   }
 
-  // 6. メッセージ配列を構築（コンテキストは最新メッセージのみに付与）
+  // 7. メッセージ配列を構築（コンテキストは最新メッセージのみに付与）
   const userMessage = buildChatUserMessage(parsed.message, context)
   const messages = [
     ...parsed.history.map((m) => ({
@@ -84,7 +121,7 @@ export async function POST(request: Request) {
     { role: "user" as const, content: userMessage },
   ]
 
-  // 7. ストリーミング応答
+  // 8. ストリーミング応答
   const client = getAnthropicClientSingleton(env)
   const encoder = new TextEncoder()
 
