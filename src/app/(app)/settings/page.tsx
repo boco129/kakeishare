@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogoutButton } from "@/components/layout/logout-button"
 import Link from "next/link"
-import { ChevronRight, PiggyBank, Tags } from "lucide-react"
+import { ChevronRight, CreditCard, PiggyBank, Tags } from "lucide-react"
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -48,6 +48,22 @@ export default async function SettingsPage() {
                 <p className="font-medium">予算設定</p>
                 <p className="text-sm text-muted-foreground">
                   月間予算の設定・カテゴリ別予算管理
+                </p>
+              </div>
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* 分割払い管理 */}
+        <Link href="/settings/installments" id="installment" className="block">
+          <Card className="transition-colors hover:bg-accent/50">
+            <CardContent className="flex items-center gap-3 py-4">
+              <CreditCard className="size-5 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="font-medium">分割払い管理</p>
+                <p className="text-sm text-muted-foreground">
+                  分割払い・ローンの登録・進捗管理
                 </p>
               </div>
               <ChevronRight className="size-5 text-muted-foreground" />

@@ -47,7 +47,7 @@ export function InstallmentSummaryCard({ data }: Props) {
           <span className="text-sm font-semibold text-destructive">
             残債合計 {formatJPY(data.totalRemainingAmount)}
           </span>
-          <Link href="/settings#installment" className="text-sm text-primary hover:underline">
+          <Link href="/settings/installments" className="text-sm text-primary hover:underline">
             詳細 →
           </Link>
         </div>
