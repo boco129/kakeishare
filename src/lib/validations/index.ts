@@ -45,6 +45,7 @@ export {
 export {
   installmentCreateSchema,
   installmentUpdateSchema,
+  installmentStatusSchema,
   type InstallmentCreateInput,
   type InstallmentUpdateInput,
 } from "./installment"
