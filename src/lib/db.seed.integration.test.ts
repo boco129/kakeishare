@@ -97,7 +97,7 @@ describe("prisma seed integrity", () => {
 
       for (const e of expenses) {
         expect(
-          categoryIds.has(e.categoryId),
+          e.categoryId != null && categoryIds.has(e.categoryId),
           `expense "${e.id}" の categoryId "${e.categoryId}" が存在しない`
         ).toBe(true)
       }
@@ -145,7 +145,7 @@ describe("prisma seed integrity", () => {
 
       for (const b of budgets) {
         expect(
-          categoryIds.has(b.categoryId),
+          b.categoryId != null && categoryIds.has(b.categoryId),
           `budget "${b.id}" の categoryId "${b.categoryId}" が存在しない`
         ).toBe(true)
       }
