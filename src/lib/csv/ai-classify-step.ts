@@ -6,7 +6,6 @@ import { isAIAvailable } from "@/lib/ai"
 import { classifyExpenses } from "@/lib/ai/classify"
 import { recalcUnconfirmedCount } from "./unconfirmed-count"
 import { env } from "@/lib/env"
-import type { AICategoryResult } from "@/lib/ai"
 import type { CategoryForResolver } from "@/lib/ai/category-resolver"
 
 /** AI分類ステップの結果 */
@@ -68,11 +67,21 @@ export async function runAiClassificationStep(
     // AI分類実行
     const results = await classifyExpenses(env, inputs, expenseIds, categories, userId)
 
-    // 結果をDBに反映
-    await applyClassificationResults(results)
-
-    // unconfirmedCount を再計算
-    await recalcUnconfirmedCount(db, csvImportId)
+    // 結果をDBに反映 + unconfirmedCount 再計算をトランザクションで原子的に実行
+    await db.$transaction(async (tx) => {
+      for (const r of results) {
+        await tx.expense.updateMany({
+          where: { id: r.expenseId, aiCategorized: false },
+          data: {
+            categoryId: r.categoryId,
+            visibility: r.suggestedVisibility,
+            confirmed: r.confirmed,
+            aiCategorized: true,
+          },
+        })
+      }
+      await recalcUnconfirmedCount(tx, csvImportId)
+    })
 
     const unconfirmedCount = results.filter((r) => !r.confirmed).length
 
@@ -86,28 +95,3 @@ export async function runAiClassificationStep(
   }
 }
 
-/**
- * AI分類結果をDBに反映する
- * aiCategorized: false 条件で更新し、冪等性・手動編集保護を実現
- */
-async function applyClassificationResults(
-  results: AICategoryResult[],
-): Promise<void> {
-  // 各支出を個別に更新（冪等性のため where 条件に aiCategorized: false を含む）
-  await Promise.all(
-    results.map((r) =>
-      db.expense.updateMany({
-        where: {
-          id: r.expenseId,
-          aiCategorized: false,
-        },
-        data: {
-          categoryId: r.categoryId,
-          visibility: r.suggestedVisibility,
-          confirmed: r.confirmed,
-          aiCategorized: true,
-        },
-      }),
-    ),
-  )
-}

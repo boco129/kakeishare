@@ -25,26 +25,23 @@ export const PATCH = withApiHandler(async (request) => {
 
   const { expenseIds } = confirmSchema.parse(body)
 
-  // 対象の支出を取得し所有者チェック
+  // 重複IDを排除
+  const uniqueIds = [...new Set(expenseIds)]
+
+  // 対象の支出を取得（DBレベルで所有者制約）
   const expenses = await db.expense.findMany({
-    where: { id: { in: expenseIds } },
-    select: { id: true, userId: true, csvImportId: true },
+    where: { id: { in: uniqueIds }, userId },
+    select: { id: true, csvImportId: true },
   })
 
-  // 存在しないIDチェック
-  if (expenses.length !== expenseIds.length) {
-    throw new ApiError("NOT_FOUND", "一部の支出が見つかりません", 404)
+  // 所有外・存在しないIDがあれば統一エラー（存在推測を防止）
+  if (expenses.length !== uniqueIds.length) {
+    throw new ApiError("NOT_FOUND", "支出が見つかりません", 404)
   }
 
-  // 所有者チェック（全件が自分の支出であること）
-  const notOwned = expenses.find((e) => e.userId !== userId)
-  if (notOwned) {
-    throw new ApiError("FORBIDDEN", "他人の支出は確認できません", 403)
-  }
-
-  // 一括更新
+  // 一括更新（所有者条件付き）
   await db.expense.updateMany({
-    where: { id: { in: expenseIds } },
+    where: { id: { in: uniqueIds }, userId },
     data: { confirmed: true },
   })
 
@@ -61,5 +58,5 @@ export const PATCH = withApiHandler(async (request) => {
     await recalcUnconfirmedCount(db, csvImportId)
   }
 
-  return jsonOk({ confirmedCount: expenseIds.length })
+  return jsonOk({ confirmedCount: uniqueIds.length })
 })

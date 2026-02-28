@@ -40,10 +40,13 @@ export function ExpenseCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmed: true }),
       })
-      if (res.ok) {
-        toast.success("支出を確認しました")
-        onConfirmed?.()
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        toast.error(json?.error?.message ?? "確認に失敗しました")
+        return
       }
+      toast.success("支出を確認しました")
+      onConfirmed?.()
     } catch {
       toast.error("確認に失敗しました")
     } finally {

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 
-// モック設定
-vi.mock("@/lib/db", () => ({
-  db: {
+// モック設定 — $transaction はコールバックに tx（= db自身）を渡して実行する
+vi.mock("@/lib/db", () => {
+  const dbObj: Record<string, unknown> = {
     expense: {
       findMany: vi.fn(),
       updateMany: vi.fn(),
@@ -10,8 +10,10 @@ vi.mock("@/lib/db", () => ({
     },
     category: { findMany: vi.fn() },
     csvImport: { update: vi.fn() },
-  },
-}))
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(dbObj)),
+  }
+  return { db: dbObj }
+})
 
 vi.mock("@/lib/ai", () => ({
   isAIAvailable: vi.fn(),

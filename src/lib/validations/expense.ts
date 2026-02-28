@@ -16,7 +16,6 @@ const expenseBaseSchema = z.object({
   isSubstitute: z.boolean(),
   actualAmount: z.number().int().positive().nullable().optional(),
   memo: z.string().trim().max(1000).nullable().optional(),
-  confirmed: z.boolean(),
 })
 
 /** 支出作成用スキーマ — visibility は optional（サーバー側で自動解決） */
@@ -27,8 +26,10 @@ export const expenseCreateSchema = expenseBaseSchema.extend({
 
 export type ExpenseCreateInput = z.infer<typeof expenseCreateSchema>
 
-/** 支出更新用スキーマ（全フィールド任意、default なし） */
-export const expenseUpdateSchema = expenseBaseSchema.partial()
+/** 支出更新用スキーマ（全フィールド任意、confirmed も更新可能） */
+export const expenseUpdateSchema = expenseBaseSchema.extend({
+  confirmed: z.boolean().optional(),
+}).partial()
 
 export type ExpenseUpdateInput = z.infer<typeof expenseUpdateSchema>
 
