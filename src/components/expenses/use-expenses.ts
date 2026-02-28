@@ -56,6 +56,7 @@ function getCurrentYearMonth(): string {
 export function useExpenses() {
   const [items, setItems] = useState<ExpenseItem[]>([])
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
+  const [unconfirmedCount, setUnconfirmedCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [meta, setMeta] = useState<PaginationMeta>({
     page: 1,
@@ -110,6 +111,7 @@ export function useExpenses() {
         setItems(newItems)
       }
       setCategoryTotals(json.data?.categoryTotals ?? [])
+      setUnconfirmedCount(json.data?.unconfirmedCount ?? 0)
       setMeta(json.meta ?? { page: 1, limit: 20, totalCount: 0, totalPages: 0 })
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -143,6 +145,7 @@ export function useExpenses() {
   return {
     items,
     categoryTotals,
+    unconfirmedCount,
     loading,
     meta,
     filters,

@@ -10,6 +10,41 @@ import type { Visibility } from "@/generated/prisma/enums"
 import { db } from "@/lib/db"
 
 /**
+ * 複数カテゴリの visibility を一括で解決する（AI分類バッチ用）
+ *
+ * CategoryVisibilitySetting（ユーザー別オーバーライド）を優先し、
+ * なければ Category.defaultVisibility を返す
+ *
+ * @param userId - 支出を登録するユーザーID
+ * @param categoryIds - カテゴリID配列（null を含む可能性あり）
+ * @returns categoryId → Visibility のマップ
+ */
+export async function resolveVisibilityBatch(
+  userId: string,
+  categoryIds: (string | null)[],
+): Promise<Map<string, Visibility>> {
+  const validIds = [...new Set(categoryIds.filter((id): id is string => id !== null))]
+  if (validIds.length === 0) return new Map()
+
+  const rows = await db.category.findMany({
+    where: { id: { in: validIds } },
+    include: {
+      visibilitySettings: {
+        where: { userId },
+        select: { visibility: true },
+      },
+    },
+  })
+
+  return new Map(
+    rows.map((c) => [
+      c.id,
+      c.visibilitySettings[0]?.visibility ?? c.defaultVisibility,
+    ]),
+  )
+}
+
+/**
  * 支出登録時の visibility を決定する
  *
  * @param userId - 支出を登録するユーザーID

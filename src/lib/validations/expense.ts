@@ -16,6 +16,7 @@ const expenseBaseSchema = z.object({
   isSubstitute: z.boolean(),
   actualAmount: z.number().int().positive().nullable().optional(),
   memo: z.string().trim().max(1000).nullable().optional(),
+  confirmed: z.boolean(),
 })
 
 /** 支出作成用スキーマ — visibility は optional（サーバー側で自動解決） */

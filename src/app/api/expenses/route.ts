@@ -76,8 +76,8 @@ export const GET = withApiHandler(async (request) => {
   const offset = (page - 1) * limit
 
   // トランザクションでfindMany / count / groupByをまとめて整合性を保証
-  const { rawItems, totalCount, categoryTotals } = await db.$transaction(async (tx) => {
-    const [rawItems, totalCount, grouped] = await Promise.all([
+  const { rawItems, totalCount, categoryTotals, unconfirmedCount } = await db.$transaction(async (tx) => {
+    const [rawItems, totalCount, grouped, unconfirmedCount] = await Promise.all([
       tx.expense.findMany({
         where: visibleWhere,
         orderBy,
@@ -94,6 +94,14 @@ export const GET = withApiHandler(async (request) => {
             _count: { _all: true },
           })
         : Promise.resolve([]),
+      // 自分の未確認支出件数（サーバー集計値）
+      tx.expense.count({
+        where: {
+          ...baseWhere,
+          userId,
+          confirmed: false,
+        },
+      }),
     ])
 
     // groupByのカテゴリIDからカテゴリ情報を取得
@@ -120,7 +128,7 @@ export const GET = withApiHandler(async (request) => {
       }))
       .sort((a, b) => b.totalAmount - a.totalAmount || (a.categoryName ?? "").localeCompare(b.categoryName ?? ""))
 
-    return { rawItems, totalCount, categoryTotals }
+    return { rawItems, totalCount, categoryTotals, unconfirmedCount }
   })
 
   // アプリ側でAMOUNT_ONLYのマスク処理を適用
@@ -130,7 +138,7 @@ export const GET = withApiHandler(async (request) => {
     .filter((e): e is NonNullable<typeof e> => e !== null)
 
   return jsonOk(
-    { items, categoryTotals },
+    { items, categoryTotals, unconfirmedCount },
     calcPaginationMeta(page, limit, totalCount),
   )
 })
