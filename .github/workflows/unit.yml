@@ -25,6 +25,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prisma generate
+        run: pnpm prisma generate
+
+      - name: Lint + Typecheck
+        run: pnpm check
+
       - name: Run unit tests with coverage
         run: pnpm test:coverage
 

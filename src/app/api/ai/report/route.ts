@@ -12,6 +12,7 @@ import { getDashboardSummary } from "@/lib/dashboard"
 import { generateMonthlyReport, toAIReportInput } from "@/lib/ai/generate-report"
 import { consumeReportRateLimit } from "@/lib/ai/report-rate-limit"
 import { env } from "@/lib/env"
+import { getAIMockMode, MOCK_REPORT } from "@/lib/ai/test-mode"
 
 const requestSchema = z.object({
   yearMonth: yearMonthSchema,
@@ -21,8 +22,10 @@ const requestSchema = z.object({
 export const POST = withApiHandler(async (request) => {
   const { userId } = await requireAuth()
 
-  // AI利用可能チェック
-  if (!isAIAvailable(env)) {
+  const mockMode = getAIMockMode()
+
+  // AI利用可能チェック（モックunavailableも503を返す）
+  if (mockMode === "unavailable" || (!isAIAvailable(env) && mockMode === "off")) {
     throw new ApiError("INTERNAL_ERROR", "AI機能が設定されていません", 503)
   }
 
@@ -42,6 +45,23 @@ export const POST = withApiHandler(async (request) => {
       "FORBIDDEN",
       "月次レポートの生成回数上限（月5回）に達しました",
       429,
+    )
+  }
+
+  // モックモード: successならモックデータ返却、errorなら失敗模擬
+  if (mockMode === "success") {
+    return jsonOk({
+      yearMonth,
+      report: MOCK_REPORT,
+      remaining: rateLimit.remaining,
+      generatedAt: new Date().toISOString(),
+    })
+  }
+  if (mockMode === "error") {
+    throw new ApiError(
+      "INTERNAL_ERROR",
+      "AIレポート生成に失敗しました。時間をおいて再試行してください",
+      503,
     )
   }
 
