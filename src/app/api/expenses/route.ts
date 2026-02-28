@@ -7,11 +7,12 @@ import { ApiError } from "@/lib/api/errors"
 import { jsonOk } from "@/lib/api/response"
 import { expenseCreateSchema, expenseListQuerySchema } from "@/lib/validations/expense"
 import { paginationSchema, calcPaginationMeta } from "@/lib/validations/pagination"
-import { filterExpensesForUser } from "@/lib/privacy"
+import { filterExpenseForUser } from "@/lib/privacy/expense-filter"
+import { VISIBLE_TO_OTHERS } from "@/lib/privacy/constants"
 import { resolveVisibility } from "@/lib/expenses"
 import type { Prisma } from "@/generated/prisma/client"
 
-/** GET /api/expenses — 支出一覧（プライバシーフィルター + ソート + ページネーション） */
+/** GET /api/expenses — 支出一覧（DB側ページネーション + プライバシーフィルター） */
 export const GET = withApiHandler(async (request) => {
   const { userId } = await requireAuth()
 
@@ -27,47 +28,109 @@ export const GET = withApiHandler(async (request) => {
   } = expenseListQuerySchema.parse(params)
   const { page, limit } = paginationSchema.parse(params)
 
-  // WHERE 条件を組み立て
-  const where: Prisma.ExpenseWhereInput = {}
+  // 基本WHERE条件を組み立て
+  const baseWhere: Prisma.ExpenseWhereInput = {}
 
   if (yearMonth) {
     const [year, month] = yearMonth.split("-").map(Number)
     const start = new Date(year, month - 1, 1)
     const end = new Date(year, month, 1)
-    where.date = { gte: start, lt: end }
+    baseWhere.date = { gte: start, lt: end }
   }
 
   if (categoryId) {
-    where.categoryId = categoryId
+    baseWhere.categoryId = categoryId
   }
 
   if (filterUserId) {
-    where.userId = filterUserId
+    baseWhere.userId = filterUserId
   }
 
-  // 全件取得してプライバシーフィルタ適用（フィルタ後にソート＋ページング）
-  const allExpenses = await db.expense.findMany({
-    where,
-    orderBy: { [sortBy]: sortOrder },
-    include: { category: { select: { name: true, icon: true } } },
-  })
+  // 明細一覧用: 自分の支出は全て含む + 相手は表示可能なvisibilityのみ
+  const visibleWhere: Prisma.ExpenseWhereInput = {
+    AND: [
+      baseWhere,
+      {
+        OR: [
+          { userId },
+          { visibility: { in: [...VISIBLE_TO_OTHERS] } },
+        ],
+      },
+    ],
+  }
 
-  const { items: filteredItems, categoryTotals } = filterExpensesForUser(allExpenses, userId)
+  // カテゴリ集計用: 相手のCATEGORY_TOTAL支出のみ
+  const categoryTotalWhere: Prisma.ExpenseWhereInput = {
+    AND: [baseWhere, { visibility: "CATEGORY_TOTAL" }, { userId: { not: userId } }],
+  }
 
-  // ソート（フィルタ後に再ソートして整合性を保証）
-  filteredItems.sort((a, b) => {
-    const aVal = sortBy === "amount" ? a.amount : a.date.getTime()
-    const bVal = sortBy === "amount" ? b.amount : b.date.getTime()
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal
-  })
+  // 自分の支出のみ取得時はcategoryTotals集計不要（相手のCATEGORY_TOTALは存在しない）
+  const needsCategoryTotals = filterUserId !== userId
 
-  // ページネーション（フィルタ後の件数基準）
-  const totalCount = filteredItems.length
+  // ソート（第2キーにidを追加してページ跨ぎの安定性を保証）
+  const orderBy: Prisma.ExpenseOrderByWithRelationInput[] = [
+    sortBy === "amount" ? { amount: sortOrder } : { date: sortOrder },
+    { id: sortOrder },
+  ]
+
   const offset = (page - 1) * limit
-  const pagedItems = filteredItems.slice(offset, offset + limit)
+
+  // トランザクションでfindMany / count / groupByをまとめて整合性を保証
+  const { rawItems, totalCount, categoryTotals } = await db.$transaction(async (tx) => {
+    const [rawItems, totalCount, grouped] = await Promise.all([
+      tx.expense.findMany({
+        where: visibleWhere,
+        orderBy,
+        skip: offset,
+        take: limit,
+        include: { category: { select: { name: true, icon: true } } },
+      }),
+      tx.expense.count({ where: visibleWhere }),
+      needsCategoryTotals
+        ? tx.expense.groupBy({
+            by: ["categoryId"],
+            where: categoryTotalWhere,
+            _sum: { amount: true },
+            _count: { _all: true },
+          })
+        : Promise.resolve([]),
+    ])
+
+    // groupByのカテゴリIDからカテゴリ情報を取得
+    const categoryIds = grouped
+      .map((g) => g.categoryId)
+      .filter((id): id is string => id !== null)
+
+    const categories = categoryIds.length
+      ? await tx.category.findMany({
+          where: { id: { in: categoryIds } },
+          select: { id: true, name: true, icon: true },
+        })
+      : []
+
+    const catMap = new Map(categories.map((c) => [c.id, c]))
+
+    const categoryTotals = grouped
+      .map((g) => ({
+        categoryId: g.categoryId,
+        categoryName: g.categoryId ? (catMap.get(g.categoryId)?.name ?? null) : null,
+        categoryIcon: g.categoryId ? (catMap.get(g.categoryId)?.icon ?? null) : null,
+        totalAmount: g._sum.amount ?? 0,
+        count: g._count._all,
+      }))
+      .sort((a, b) => b.totalAmount - a.totalAmount || (a.categoryName ?? "").localeCompare(b.categoryName ?? ""))
+
+    return { rawItems, totalCount, categoryTotals }
+  })
+
+  // アプリ側でAMOUNT_ONLYのマスク処理を適用
+  // DB側で相手のCATEGORY_TOTALは除外済みだが、型安全のためnullをフィルタ
+  const items = rawItems
+    .map((e) => filterExpenseForUser(e, userId))
+    .filter((e): e is NonNullable<typeof e> => e !== null)
 
   return jsonOk(
-    { items: pagedItems, categoryTotals },
+    { items, categoryTotals },
     calcPaginationMeta(page, limit, totalCount),
   )
 })
