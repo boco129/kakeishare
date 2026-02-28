@@ -51,6 +51,8 @@ type ImportResult = {
   importedCount: number
   duplicateCount: number
   totalRows: number
+  aiClassified: boolean
+  unconfirmedCount: number
 }
 
 export function CsvImportDialog({
@@ -214,6 +216,18 @@ export function CsvImportDialog({
                 <span className="text-muted-foreground">CSV総行数</span>
                 <span className="text-muted-foreground">{result.totalRows}件</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">AI分類</span>
+                <span className={result.aiClassified ? "text-green-600" : "text-muted-foreground"}>
+                  {result.aiClassified ? "実行済み" : "スキップ"}
+                </span>
+              </div>
+              {result.aiClassified && result.unconfirmedCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">要確認</span>
+                  <span className="font-semibold text-amber-600">{result.unconfirmedCount}件</span>
+                </div>
+              )}
             </div>
             <Button className="w-full" onClick={() => handleClose(false)}>
               閉じる

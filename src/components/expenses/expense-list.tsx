@@ -25,12 +25,14 @@ export function ExpenseList({
   users,
   onEdit,
   onDelete,
+  onConfirmed,
 }: {
   items: ExpenseItem[]
   currentUserId: string
   users: { id: string; name: string }[]
   onEdit: (expense: ExpenseItem) => void
   onDelete: (expense: ExpenseItem) => void
+  onConfirmed?: () => void
 }) {
   // 日付別にグルーピング
   const groups = useMemo(() => {
@@ -79,6 +81,7 @@ export function ExpenseList({
                 users={users}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onConfirmed={onConfirmed}
               />
             ))}
           </div>

@@ -19,6 +19,7 @@ import { DeleteConfirmDialog } from "./delete-confirm-dialog"
 import { useExpenses, type ExpenseItem } from "./use-expenses"
 import { CsvImportDialog } from "@/components/csv/csv-import-dialog"
 import { CsvImportHistory } from "@/components/csv/csv-import-history"
+import { UnconfirmedBanner } from "./unconfirmed-banner"
 
 type UserInfo = { id: string; name: string }
 
@@ -34,6 +35,7 @@ export function ExpensesPageClient({
   const {
     items,
     categoryTotals,
+    unconfirmedCount,
     loading,
     meta,
     filters,
@@ -129,6 +131,14 @@ export function ExpensesPageClient({
           totalCount={meta.totalCount}
         />
 
+        {/* 未確認バナー */}
+        <UnconfirmedBanner
+          unconfirmedCount={unconfirmedCount}
+          items={items}
+          currentUserId={currentUserId}
+          onConfirmed={refresh}
+        />
+
         {/* 一覧 */}
         {loading ? (
           <div className="flex justify-center py-12">
@@ -142,6 +152,7 @@ export function ExpensesPageClient({
               users={users}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onConfirmed={refresh}
             />
 
             {/* CATEGORY_TOTAL 集計 */}

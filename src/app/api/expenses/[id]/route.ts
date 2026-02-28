@@ -8,6 +8,7 @@ import { jsonOk } from "@/lib/api/response"
 import { expenseUpdateSchema } from "@/lib/validations/expense"
 import { filterExpenseForUser } from "@/lib/privacy"
 import { resolveVisibility } from "@/lib/expenses"
+import { recalcUnconfirmedCount } from "@/lib/csv/unconfirmed-count"
 
 /** パスパラメータから id を安全に取得 */
 async function extractId(context: { params?: Promise<Record<string, string | string[] | undefined>> }) {
@@ -106,9 +107,15 @@ export const PATCH = withApiHandler(async (request, context) => {
       isSubstitute,
       actualAmount,
       ...(input.memo !== undefined && { memo: input.memo }),
+      ...(input.confirmed !== undefined && { confirmed: input.confirmed }),
     },
     include: { category: { select: { name: true, icon: true } } },
   })
+
+  // csvImportId がある場合は unconfirmedCount を再計算
+  if (expense.csvImportId) {
+    await recalcUnconfirmedCount(db, expense.csvImportId)
+  }
 
   return jsonOk(updated)
 })
@@ -129,6 +136,11 @@ export const DELETE = withApiHandler(async (_, context) => {
   }
 
   await db.expense.delete({ where: { id } })
+
+  // csvImportId がある場合は unconfirmedCount を再計算
+  if (expense.csvImportId) {
+    await recalcUnconfirmedCount(db, expense.csvImportId)
+  }
 
   return jsonOk({ id })
 })

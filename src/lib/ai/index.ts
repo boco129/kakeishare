@@ -44,5 +44,8 @@ export {
   buildChatUserMessage,
 } from "./prompts"
 
+// バッチ分類 — db をトップレベルで参照するため barrel export に含めない
+// 直接 import する: import { classifyExpenses } from "@/lib/ai/classify"
+
 // 利用ログ
 export { logTokenUsage, type AIUsageLogEntry } from "./usage-logger"

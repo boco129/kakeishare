@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { Pencil, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { ExpenseItem } from "./use-expenses"
@@ -16,21 +18,61 @@ export function ExpenseCard({
   users,
   onEdit,
   onDelete,
+  onConfirmed,
 }: {
   expense: ExpenseItem
   currentUserId: string
   users: { id: string; name: string }[]
   onEdit: (expense: ExpenseItem) => void
   onDelete: (expense: ExpenseItem) => void
+  onConfirmed?: () => void
 }) {
   const isOwn = expense.userId === currentUserId
   const userName = users.find((u) => u.id === expense.userId)?.name ?? ""
+  const [confirming, setConfirming] = useState(false)
+
+  const handleConfirm = async () => {
+    if (!isOwn || expense.confirmed) return
+    setConfirming(true)
+    try {
+      const res = await fetch(`/api/expenses/${expense.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmed: true }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        toast.error(json?.error?.message ?? "確認に失敗しました")
+        return
+      }
+      toast.success("支出を確認しました")
+      onConfirmed?.()
+    } catch {
+      toast.error("確認に失敗しました")
+    } finally {
+      setConfirming(false)
+    }
+  }
 
   return (
     <div className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/50">
       {/* 確認状態 */}
       <div className="mt-0.5 shrink-0 text-lg">
-        {expense.confirmed ? "✅" : "🟡"}
+        {expense.confirmed ? (
+          "✅"
+        ) : isOwn ? (
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={confirming}
+            className="cursor-pointer transition-transform hover:scale-110 disabled:opacity-50"
+            title="クリックして確認"
+          >
+            🟡
+          </button>
+        ) : (
+          "🟡"
+        )}
       </div>
 
       {/* メイン情報 */}

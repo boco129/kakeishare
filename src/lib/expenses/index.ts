@@ -1,1 +1,1 @@
-export { resolveVisibility } from "./visibility"
+export { resolveVisibility, resolveVisibilityBatch } from "./visibility"

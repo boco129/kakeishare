@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/api/auth"
 import { ApiError } from "@/lib/api/errors"
 import { jsonOk } from "@/lib/api/response"
 import { analyzeCsvImport } from "@/lib/csv"
+import { runAiClassificationStep } from "@/lib/csv/ai-classify-step"
 
 /** YYYY-MM-DD 文字列をローカルタイムゾーンの Date に変換 */
 function toLocalDate(dateStr: string): Date {
@@ -94,6 +95,9 @@ export const POST = withApiHandler(async (request) => {
     throw e
   }
 
+  // AI分類ステップ（トランザクション外で実行 — AI遅延でCSV取込自体を失敗させない）
+  const aiResult = await runAiClassificationStep(result.id, analysis.ownerUserId)
+
   return jsonOk({
     importId: result.id,
     cardName: analysis.cardName,
@@ -101,5 +105,7 @@ export const POST = withApiHandler(async (request) => {
     importedCount: analysis.newRows.length,
     duplicateCount: analysis.duplicateCount,
     totalRows: analysis.totalRows,
+    aiClassified: aiResult !== null,
+    unconfirmedCount: aiResult?.unconfirmedCount ?? analysis.newRows.length,
   })
 })

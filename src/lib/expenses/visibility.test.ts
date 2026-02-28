@@ -6,14 +6,16 @@ vi.mock("@/lib/db", () => ({
   db: {
     category: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }))
 
-import { resolveVisibility } from "./visibility"
+import { resolveVisibility, resolveVisibilityBatch } from "./visibility"
 import { db } from "@/lib/db"
 
 const mockFindUnique = vi.mocked(db.category.findUnique)
+const mockFindMany = vi.mocked(db.category.findMany)
 
 const USER_ID = "user-1"
 const CATEGORY_ID = "cat-food"
@@ -115,6 +117,79 @@ describe("resolveVisibility", () => {
       const result = await resolveVisibility(USER_ID, "non-existent-cat")
 
       expect(result).toBe(Visibility.PUBLIC)
+    })
+  })
+})
+
+describe("resolveVisibilityBatch", () => {
+  it("複数カテゴリのvisibilityを一括で解決する", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "cat1",
+        defaultVisibility: Visibility.PUBLIC,
+        visibilitySettings: [],
+      },
+      {
+        id: "cat2",
+        defaultVisibility: Visibility.AMOUNT_ONLY,
+        visibilitySettings: [{ visibility: Visibility.CATEGORY_TOTAL }],
+      },
+    ] as never)
+
+    const result = await resolveVisibilityBatch(USER_ID, ["cat1", "cat2"])
+
+    expect(result.get("cat1")).toBe(Visibility.PUBLIC)
+    // ユーザー別設定が優先される
+    expect(result.get("cat2")).toBe(Visibility.CATEGORY_TOTAL)
+  })
+
+  it("null を含むcategoryIds配列を正しくフィルタリングする", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "cat1",
+        defaultVisibility: Visibility.PUBLIC,
+        visibilitySettings: [],
+      },
+    ] as never)
+
+    const result = await resolveVisibilityBatch(USER_ID, [null, "cat1", null])
+
+    expect(result.size).toBe(1)
+    expect(result.get("cat1")).toBe(Visibility.PUBLIC)
+  })
+
+  it("空の配列では空のMapを返す", async () => {
+    const result = await resolveVisibilityBatch(USER_ID, [])
+    expect(result.size).toBe(0)
+    expect(mockFindMany).not.toHaveBeenCalled()
+  })
+
+  it("全てnullの場合も空のMapを返す", async () => {
+    const result = await resolveVisibilityBatch(USER_ID, [null, null])
+    expect(result.size).toBe(0)
+    expect(mockFindMany).not.toHaveBeenCalled()
+  })
+
+  it("重複するcategoryIdsは一意化される", async () => {
+    mockFindMany.mockResolvedValue([
+      {
+        id: "cat1",
+        defaultVisibility: Visibility.PUBLIC,
+        visibilitySettings: [],
+      },
+    ] as never)
+
+    await resolveVisibilityBatch(USER_ID, ["cat1", "cat1", "cat1"])
+
+    // findMany の where.id.in に重複なく渡される
+    expect(mockFindMany).toHaveBeenCalledWith({
+      where: { id: { in: ["cat1"] } },
+      include: {
+        visibilitySettings: {
+          where: { userId: USER_ID },
+          select: { visibility: true },
+        },
+      },
     })
   })
 })
