@@ -33,11 +33,17 @@ export function CategoryTrendChart({ data }: Props) {
     )
   }
 
-  // カテゴリキーを取得（全月で共通）
-  const categoryKeys = data[0]?.categories.map((c) => ({
-    id: c.categoryId,
-    name: c.categoryName,
-  })) ?? []
+  // 全月のカテゴリ集合からユニークなキーを取得
+  const seen = new Set<string>()
+  const categoryKeys: { id: string; name: string }[] = []
+  for (const entry of data) {
+    for (const c of entry.categories) {
+      if (!seen.has(c.categoryId)) {
+        seen.add(c.categoryId)
+        categoryKeys.push({ id: c.categoryId, name: c.categoryName })
+      }
+    }
+  }
 
   if (categoryKeys.length === 0) {
     return (
