@@ -8,7 +8,7 @@
 
 ## 2. 技術スタック
 
-### Phase 1 実装済み
+### Phase 1-2 実装済み
 
 | レイヤー | 技術 |
 |---------|------|
@@ -19,15 +19,15 @@
 | DB（本番） | Supabase (PostgreSQL) |
 | 認証 | next-auth 5.0.0-beta.30（Credentials） |
 | バリデーション | Zod 4.3.6 |
+| CSV解析 | csv-parse + iconv-lite |
 | パッケージマネージャ | pnpm |
 | ホスティング | Vercel |
 
-### Phase 2 以降で導入予定
+### Phase 3 以降で導入予定
 
 | レイヤー | 技術 |
 |---------|------|
 | AI連携 | Anthropic SDK (`@anthropic-ai/sdk`) |
-| CSV解析 | papaparse |
 | グラフ | Recharts |
 | 通知 | LINE Messaging API |
 
@@ -45,13 +45,26 @@ src/
 │   ├── (auth)/                # 未認証用 Route Group
 │   │   └── login/page.tsx     # ログイン画面
 │   └── api/                   # APIルート
-│       └── auth/[...nextauth]/route.ts
+│       ├── auth/[...nextauth]/route.ts
+│       ├── expenses/          # 支出CRUD API
+│       ├── categories/        # カテゴリAPI
+│       ├── csv-import/        # CSV取り込みAPI
+│       └── dev/               # 開発用API
 ├── auth.ts                    # NextAuth v5 設定（src直下、@/auth でimport）
 ├── components/                # UIコンポーネント
 │   ├── ui/                    # shadcn/ui
-│   └── layout/                # AppShell・ナビゲーション
+│   ├── layout/                # AppShell・ナビゲーション
+│   ├── expenses/              # 支出関連コンポーネント
+│   ├── csv/                   # CSV取り込みコンポーネント
+│   └── settings/              # 設定コンポーネント
 ├── generated/prisma/          # Prisma Client（自動生成）
 ├── lib/                       # ビジネスロジック
+│   ├── api/                   # APIハンドラ共通処理
+│   ├── auth/                  # 認証・レート制限・監査ログ
+│   ├── csv/                   # CSV解析・マッピング・取込処理
+│   ├── expenses/              # 支出ビジネスロジック
+│   ├── privacy/               # プライバシーフィルタリング
+│   ├── validations/           # Zodバリデーションスキーマ
 │   ├── db.ts                  # Prisma Clientシングルトン
 │   ├── auth-utils.ts          # 認証ヘルパー
 │   └── utils.ts               # 汎用ユーティリティ
@@ -64,8 +77,8 @@ prisma/
 └── seed.ts                    # シードデータ
 ```
 
-> **将来追加予定のディレクトリ**（Phase 2以降）:
-> `src/lib/csv/`, `src/lib/ai/`, `src/lib/privacy/`, `src/components/dashboard/`, `src/components/expenses/`, `src/app/api/expenses/`, `src/app/api/csv-import/` 等
+> **将来追加予定のディレクトリ**（Phase 3以降）:
+> `src/lib/ai/`（Phase 4: Claude AI連携）, `src/components/dashboard/`（Phase 3: ダッシュボード）
 
 ## 4. コーディングルール
 
@@ -143,6 +156,11 @@ generateExpenseHash(date, description, amount)
 ```bash
 pnpm dev                      # 開発サーバー起動
 pnpm build                    # 本番ビルド
+pnpm check                    # lint + typecheck
+pnpm test                     # ユニットテスト実行
+pnpm test:coverage            # カバレッジ付きテスト
+pnpm coverage                 # test:coverage のエイリアス
+pnpm e2e                      # E2Eテスト実行
 pnpm prisma generate          # Prisma Client再生成（schema変更後に必須）
 pnpm prisma migrate dev       # マイグレーション実行
 pnpm prisma db seed           # シードデータ投入
