@@ -38,6 +38,7 @@ import {
   getBudgetSummary,
   getInstallmentSummary,
   getCsvImportStatus,
+  aggregateCategoryTrend,
 } from "./aggregate"
 import { db } from "@/lib/db"
 
@@ -430,5 +431,123 @@ describe("getCsvImportStatus", () => {
     const result = await getCsvImportStatus("2026-02")
 
     expect(result.unimportedMonths).toContain("2026-02")
+  })
+})
+
+// ============================================================
+// aggregateCategoryTrend
+// ============================================================
+
+describe("aggregateCategoryTrend", () => {
+  it("上位カテゴリ別の月次推移を昇順で返す", async () => {
+    // Stage 1: groupBy
+    mockExpenseGroupBy.mockResolvedValue([
+      { categoryId: "cat-food", _sum: { amount: 120000 } },
+      { categoryId: "cat-transport", _sum: { amount: 80000 } },
+    ] as never)
+
+    // カテゴリ名取得
+    mockCategoryFindMany.mockResolvedValue([
+      { id: "cat-food", name: "食費" },
+      { id: "cat-transport", name: "交通費" },
+    ] as never)
+
+    // Stage 2: findMany
+    mockExpenseFindMany.mockResolvedValue([
+      { date: new Date(2026, 0, 10), amount: 60000, categoryId: "cat-food" },
+      { date: new Date(2026, 0, 20), amount: 40000, categoryId: "cat-transport" },
+      { date: new Date(2025, 11, 5), amount: 60000, categoryId: "cat-food" },
+      { date: new Date(2025, 11, 15), amount: 40000, categoryId: "cat-transport" },
+    ] as never)
+
+    const result = await aggregateCategoryTrend(2, "2026-01", 5)
+
+    expect(result).toHaveLength(2)
+    // 昇順（古い月→新しい月）
+    expect(result[0].yearMonth).toBe("2025-12")
+    expect(result[1].yearMonth).toBe("2026-01")
+    // カテゴリ別金額
+    expect(result[1].categories).toEqual([
+      { categoryId: "cat-food", categoryName: "食費", amount: 60000 },
+      { categoryId: "cat-transport", categoryName: "交通費", amount: 40000 },
+    ])
+  })
+
+  it("未分類カテゴリ（categoryId = null）もTOP Nに含める", async () => {
+    mockExpenseGroupBy.mockResolvedValue([
+      { categoryId: null, _sum: { amount: 100000 } },
+      { categoryId: "cat-food", _sum: { amount: 50000 } },
+    ] as never)
+
+    mockCategoryFindMany.mockResolvedValue([
+      { id: "cat-food", name: "食費" },
+    ] as never)
+
+    mockExpenseFindMany.mockResolvedValue([
+      { date: new Date(2026, 0, 10), amount: 100000, categoryId: null },
+      { date: new Date(2026, 0, 20), amount: 50000, categoryId: "cat-food" },
+    ] as never)
+
+    const result = await aggregateCategoryTrend(1, "2026-01", 5)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].categories).toHaveLength(2)
+    // 未分類が1位
+    expect(result[0].categories[0]).toEqual({
+      categoryId: "__uncategorized__",
+      categoryName: "未分類",
+      amount: 100000,
+    })
+    expect(result[0].categories[1]).toEqual({
+      categoryId: "cat-food",
+      categoryName: "食費",
+      amount: 50000,
+    })
+
+    // Stage2のfindManyがOR条件でnullカテゴリも取得していることを検証（再発防止）
+    const findManyCall = mockExpenseFindMany.mock.calls[0][0] as { where: Record<string, unknown> }
+    expect(findManyCall.where).toHaveProperty("OR")
+    const orConditions = findManyCall.where.OR as Array<Record<string, unknown>>
+    expect(orConditions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ categoryId: { in: ["cat-food"] } }),
+        expect.objectContaining({ categoryId: null }),
+      ]),
+    )
+  })
+
+  it("months <= 0 の場合は空配列を返す", async () => {
+    const result = await aggregateCategoryTrend(0, "2026-01")
+    expect(result).toEqual([])
+    expect(mockExpenseGroupBy).not.toHaveBeenCalled()
+  })
+
+  it("groupBy が空の場合は空配列を返す", async () => {
+    mockExpenseGroupBy.mockResolvedValue([] as never)
+
+    const result = await aggregateCategoryTrend(2, "2026-01", 5)
+    expect(result).toEqual([])
+  })
+
+  it("データがない月は金額 0 を返す", async () => {
+    mockExpenseGroupBy.mockResolvedValue([
+      { categoryId: "cat-food", _sum: { amount: 60000 } },
+    ] as never)
+
+    mockCategoryFindMany.mockResolvedValue([
+      { id: "cat-food", name: "食費" },
+    ] as never)
+
+    // 2026-01のデータのみ、2025-12はなし
+    mockExpenseFindMany.mockResolvedValue([
+      { date: new Date(2026, 0, 10), amount: 60000, categoryId: "cat-food" },
+    ] as never)
+
+    const result = await aggregateCategoryTrend(2, "2026-01", 5)
+
+    expect(result[0].yearMonth).toBe("2025-12")
+    expect(result[0].categories[0].amount).toBe(0)
+    expect(result[1].yearMonth).toBe("2026-01")
+    expect(result[1].categories[0].amount).toBe(60000)
   })
 })

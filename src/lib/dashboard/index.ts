@@ -10,6 +10,7 @@ export {
   getBudgetSummary,
   getInstallmentSummary,
   getCsvImportStatus,
+  aggregateCategoryTrend,
 } from "./aggregate"
 
 export type {
@@ -24,9 +25,15 @@ export type {
   InstallmentSummary,
   InstallmentItem,
   CsvImportStatus,
+  CategoryTrendEntry,
 } from "./types"
 
 export {
   getDashboardSummary,
   type DashboardSummary,
 } from "./get-dashboard-summary"
+
+export {
+  getReviewSummary,
+  type ReviewSummary,
+} from "./get-review-summary"
