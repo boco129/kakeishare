@@ -24,6 +24,7 @@ export default defineConfig({
     { name: "setup", testMatch: /auth\.setup\.ts/ },
     {
       name: "mobile",
+      testIgnore: /\.api\.spec\.ts/,
       use: {
         viewport: { width: 1024, height: 900 },
         storageState: "e2e/.auth/admin.json",
@@ -32,6 +33,7 @@ export default defineConfig({
     },
     {
       name: "desktop",
+      testIgnore: /\.api\.spec\.ts/,
       use: {
         viewport: { width: 1025, height: 900 },
         storageState: "e2e/.auth/admin.json",
@@ -40,10 +42,19 @@ export default defineConfig({
     },
     {
       name: "unauth",
+      testIgnore: /\.api\.spec\.ts/,
       use: {
         viewport: { width: 1024, height: 900 },
         storageState: { cookies: [], origins: [] },
       },
+    },
+    {
+      name: "api",
+      testMatch: /\.api\.spec\.ts/,
+      use: {
+        storageState: "e2e/.auth/admin.json",
+      },
+      dependencies: ["setup"],
     },
   ],
 })
