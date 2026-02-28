@@ -35,6 +35,11 @@ export {
 export { yearMonthSchema } from "./year-month"
 
 export {
+  dashboardSummaryQuerySchema,
+  type DashboardSummaryQuery,
+} from "./dashboard"
+
+export {
   budgetCreateSchema,
   budgetPatchSchema,
   budgetListQuerySchema,
