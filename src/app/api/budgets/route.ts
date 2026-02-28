@@ -57,7 +57,12 @@ export const GET = withApiHandler(async (request) => {
     updatedAt: b.updatedAt,
   }))
 
-  return jsonOk(items)
+  // meta にカテゴリ別実績を含める（予算未設定カテゴリの実績も返す）
+  const spentByCategoryMeta = Object.fromEntries(
+    grouped.map((g) => [g.categoryId ?? "__total__", g._sum?.amount ?? 0]),
+  )
+
+  return jsonOk(items, { spentByCategory: spentByCategoryMeta, totalSpent })
 })
 
 /** POST /api/budgets — 予算作成/更新（upsertパターン、ADMINのみ） */
