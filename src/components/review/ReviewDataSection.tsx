@@ -2,6 +2,8 @@
 // Suspense境界内で使用し、データフェッチ完了までスケルトンを表示
 
 import { getReviewSummary } from "@/lib/dashboard"
+import { isAIAvailable } from "@/lib/ai"
+import { env } from "@/lib/env"
 import { ReviewClient } from "./ReviewClient"
 
 type Props = {
@@ -16,5 +18,11 @@ export async function ReviewDataSection({ yearMonth, userId }: Props) {
     userId,
   })
 
-  return <ReviewClient data={data} />
+  return (
+    <ReviewClient
+      data={data}
+      yearMonth={yearMonth}
+      aiAvailable={isAIAvailable(env)}
+    />
+  )
 }
