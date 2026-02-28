@@ -2,10 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { logAuthEvent } from "@/lib/auth/audit-log"
 
 describe("logAuthEvent", () => {
-  let consoleSpy: ReturnType<typeof vi.spyOn>
-
   beforeEach(() => {
-    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+    vi.spyOn(console, "log").mockImplementation(() => {})
   })
 
   afterEach(() => {

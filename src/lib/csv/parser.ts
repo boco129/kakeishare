@@ -45,7 +45,7 @@ function normalizeRow(
   // 日付
   const dateRaw = extractColumnValue(row, mapping.date)
   if (!dateRaw) return null
-  const date = parseDate(dateRaw, mapping.date.format)
+  const date = parseDate(dateRaw)
   if (!date) return null
 
   // 店舗名・説明
@@ -130,7 +130,7 @@ function extractInstallmentCount(
  * 日付文字列を YYYY-MM-DD 形式に変換する。
  * 対応形式: YYYY/MM/DD, YYYY-MM-DD
  */
-function parseDate(raw: string, _format?: string): string | null {
+function parseDate(raw: string): string | null {
   // YYYY/MM/DD → YYYY-MM-DD
   const normalized = raw.replace(/\//g, "-")
   const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
