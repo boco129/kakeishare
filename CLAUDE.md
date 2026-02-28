@@ -8,7 +8,7 @@
 
 ## 2. 技術スタック
 
-### Phase 1-2 実装済み
+### Phase 1-3 実装済み
 
 | レイヤー | 技術 |
 |---------|------|
@@ -20,15 +20,15 @@
 | 認証 | next-auth 5.0.0-beta.30（Credentials） |
 | バリデーション | Zod 4.3.6 |
 | CSV解析 | csv-parse + iconv-lite |
+| グラフ | Recharts 2.x |
 | パッケージマネージャ | pnpm |
 | ホスティング | Vercel |
 
-### Phase 3 以降で導入予定
+### Phase 4 以降で導入予定
 
 | レイヤー | 技術 |
 |---------|------|
 | AI連携 | Anthropic SDK (`@anthropic-ai/sdk`) |
-| グラフ | Recharts |
 | 通知 | LINE Messaging API |
 
 ## 3. ディレクトリ構成ルール
@@ -48,6 +48,9 @@ src/
 │       ├── auth/[...nextauth]/route.ts
 │       ├── expenses/          # 支出CRUD API
 │       ├── categories/        # カテゴリAPI
+│       ├── budgets/           # 予算CRUD API
+│       ├── installments/      # 分割払いCRUD API
+│       ├── dashboard/summary/ # ダッシュボード集計API
 │       ├── csv-import/        # CSV取り込みAPI
 │       └── dev/               # 開発用API
 ├── auth.ts                    # NextAuth v5 設定（src直下、@/auth でimport）
@@ -56,17 +59,23 @@ src/
 │   ├── layout/                # AppShell・ナビゲーション
 │   ├── expenses/              # 支出関連コンポーネント
 │   ├── csv/                   # CSV取り込みコンポーネント
+│   ├── charts/                # Rechartsチャートコンポーネント
+│   ├── dashboard/             # ダッシュボードコンポーネント
+│   ├── review/                # レビュー画面コンポーネント
 │   └── settings/              # 設定コンポーネント
 ├── generated/prisma/          # Prisma Client（自動生成）
 ├── lib/                       # ビジネスロジック
 │   ├── api/                   # APIハンドラ共通処理
 │   ├── auth/                  # 認証・レート制限・監査ログ
 │   ├── csv/                   # CSV解析・マッピング・取込処理
+│   ├── dashboard/             # ダッシュボード集計ドメインロジック
 │   ├── expenses/              # 支出ビジネスロジック
 │   ├── privacy/               # プライバシーフィルタリング
 │   ├── validations/           # Zodバリデーションスキーマ
 │   ├── db.ts                  # Prisma Clientシングルトン
 │   ├── auth-utils.ts          # 認証ヘルパー
+│   ├── chart-colors.ts        # チャート用カラーパレット
+│   ├── chart-format.ts        # チャート用フォーマッタ
 │   └── utils.ts               # 汎用ユーティリティ
 └── types/
     └── next-auth.d.ts         # NextAuth 型拡張
@@ -77,8 +86,8 @@ prisma/
 └── seed.ts                    # シードデータ
 ```
 
-> **将来追加予定のディレクトリ**（Phase 3以降）:
-> `src/lib/ai/`（Phase 4: Claude AI連携）, `src/components/dashboard/`（Phase 3: ダッシュボード）
+> **将来追加予定のディレクトリ**（Phase 4以降）:
+> `src/lib/ai/`（Phase 4: Claude AI連携）
 
 ## 4. コーディングルール
 
