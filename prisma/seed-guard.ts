@@ -22,7 +22,7 @@ const ALLOWED_PREFIX_PATHS = [
 ]
 
 type GuardOptions = {
-  env?: NodeJS.ProcessEnv
+  env?: Record<string, string | undefined>
   argv?: string[]
   defaultDatabaseUrl?: string
 }
