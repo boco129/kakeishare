@@ -1,7 +1,6 @@
 "use client"
 
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts"
-import { Bot } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -19,15 +18,20 @@ import {
 } from "@/components/charts"
 import { formatJPY } from "@/lib/chart-format"
 import { colorByCategoryKey } from "@/lib/chart-colors"
+import { AIReportCard } from "./ai-report-card"
 import type { ReviewSummary } from "@/lib/dashboard"
 
 type Props = {
   data: ReviewSummary
+  yearMonth: string
+  aiAvailable: boolean
 }
+
+type SummaryTabProps = Props
 
 // ─── サマリータブ ─────────────────────────────────────
 
-function SummaryTab({ data }: Props) {
+function SummaryTab({ data, yearMonth, aiAvailable }: SummaryTabProps) {
   const remaining = data.budget.remainingBudget
   const hasBudget = data.budget.totalBudget > 0
 
@@ -122,15 +126,8 @@ function SummaryTab({ data }: Props) {
         </Card>
       )}
 
-      {/* Claude洞察カード（Phase4プレースホルダー） */}
-      <Card className="border-dashed">
-        <CardContent className="py-4 text-center space-y-2">
-          <Bot className="mx-auto size-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            AIによる家計分析コメントは今後実装予定です
-          </p>
-        </CardContent>
-      </Card>
+      {/* AI家計分析 */}
+      <AIReportCard yearMonth={yearMonth} aiAvailable={aiAvailable} />
     </div>
   )
 }
@@ -263,7 +260,7 @@ function TrendTab({ data }: Props) {
 
 // ─── メインコンポーネント ─────────────────────────────
 
-export function ReviewClient({ data }: Props) {
+export function ReviewClient({ data, yearMonth, aiAvailable }: Props) {
   return (
     <Tabs defaultValue="summary" className="space-y-4">
       <TabsList className="grid w-full grid-cols-3">
@@ -272,13 +269,13 @@ export function ReviewClient({ data }: Props) {
         <TabsTrigger value="trend">推移</TabsTrigger>
       </TabsList>
       <TabsContent value="summary">
-        <SummaryTab data={data} />
+        <SummaryTab data={data} yearMonth={yearMonth} aiAvailable={aiAvailable} />
       </TabsContent>
       <TabsContent value="category">
-        <CategoryTab data={data} />
+        <CategoryTab data={data} yearMonth={yearMonth} aiAvailable={aiAvailable} />
       </TabsContent>
       <TabsContent value="trend">
-        <TrendTab data={data} />
+        <TrendTab data={data} yearMonth={yearMonth} aiAvailable={aiAvailable} />
       </TabsContent>
     </Tabs>
   )
