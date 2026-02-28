@@ -1,13 +1,14 @@
 // Phase 4: プロンプトテンプレート管理
 // 各AI機能のシステムプロンプトを一元管理する
 
-import type { AICategoryInput, AIReportInput } from "./types"
+import type { AICategoryInput, AIReportInput, AIInsightsInput } from "./types"
 
 /** プロンプトバージョン管理 */
 export const PROMPT_VERSIONS = {
   CLASSIFICATION: "v1",
   REPORT: "v1",
   CHAT: "v1",
+  INSIGHTS: "v1",
 } as const
 
 /** デフォルトのカテゴリ一覧（DBから取得できない場合のフォールバック用） */
@@ -114,4 +115,68 @@ export function buildChatUserMessage(
     return `## 家計データ\n${context}\n\n## 質問\n${message}`
   }
   return message
+}
+
+/**
+ * AI Insights（削減提案+支出予測）用システムプロンプトを生成する
+ */
+export function buildInsightsSystemPrompt(): string {
+  return `あなたは夫婦の家計アドバイザーです。支出データを分析し、削減提案と来月の支出予測をJSON形式で提供してください。
+
+## 出力フォーマット（必ず以下のJSONのみを出力）
+{
+  "suggestions": [
+    {
+      "category": "カテゴリ名",
+      "currentAverage": 直近の月平均額(整数・円),
+      "targetAmount": 提案する目標月額(整数・円),
+      "savingAmount": 削減可能額(整数・円),
+      "description": "具体的な削減提案（根拠となる数値を含める）",
+      "priority": "high" | "medium" | "low"
+    }
+  ],
+  "forecast": {
+    "totalPredicted": 来月の予測総額(整数・円),
+    "confidence": "high" | "medium" | "low",
+    "confidenceReason": "信頼度の根拠",
+    "categories": [
+      {
+        "category": "カテゴリ名",
+        "predictedAmount": 予測額(整数・円),
+        "reason": "予測根拠"
+      }
+    ]
+  },
+  "summary": "全体の分析サマリー（2-3文）"
+}
+
+## ルール
+- suggestionsは優先度順に最大5件。予算オーバーのカテゴリを優先
+- 固定費（isFixedCost: true）の削減提案は慎重に。見直し可能な場合のみ提案
+- forecastのconfidenceはデータ月数で判断: 6ヶ月以上=high, 3-5ヶ月=medium, 1-2ヶ月=low
+- 固定費と分割払いは来月も同額で継続と仮定
+- 変動費はトレンドと季節性を考慮して予測
+- 非公開カテゴリ（合計値のみ提供）の詳細は推測しない
+- 金額は全て整数（円）で出力
+- 夫婦の協力を促す前向きなトーンで
+- JSONのみを出力し、コードブロックや説明文は含めない`
+}
+
+/**
+ * AI Insights用ユーザーメッセージを生成する
+ */
+export function buildInsightsUserMessage(input: AIInsightsInput): string {
+  return `${input.yearMonth}の家計分析をお願いします。データ月数: ${input.availableMonths}ヶ月
+
+## 月次支出推移
+${JSON.stringify(input.monthlyTrend, null, 2)}
+
+## カテゴリ別月次推移
+${JSON.stringify(input.categoryTrend, null, 2)}
+
+## 予算 vs 実績（${input.yearMonth}）
+${JSON.stringify(input.budgetSummary, null, 2)}
+
+## 分割払い（毎月固定支出）
+${JSON.stringify(input.installments, null, 2)}`
 }

@@ -10,6 +10,10 @@ export type {
   AICategoryInput,
   AICategoryRawOutput,
   AIReportInput,
+  AIInsightsInput,
+  AISuggestionItem,
+  AIForecastCategoryItem,
+  AIInsightsOutput,
 } from "./types"
 
 // Zodバリデーション
@@ -17,8 +21,12 @@ export {
   aiConfidenceSchema,
   aiCategoryOutputSchema,
   aiCategoryBatchOutputSchema,
+  aiSuggestionItemSchema,
+  aiForecastCategoryItemSchema,
+  aiInsightsOutputSchema,
   type AICategoryOutput,
   type AICategoryBatchOutput,
+  type AIInsightsOutputParsed,
 } from "./schemas"
 
 // クライアント
@@ -42,6 +50,8 @@ export {
   buildReportUserMessage,
   buildChatSystemPrompt,
   buildChatUserMessage,
+  buildInsightsSystemPrompt,
+  buildInsightsUserMessage,
 } from "./prompts"
 
 // バッチ分類 — db をトップレベルで参照するため barrel export に含めない

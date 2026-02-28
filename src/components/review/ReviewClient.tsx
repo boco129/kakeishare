@@ -19,6 +19,7 @@ import {
 import { formatJPY } from "@/lib/chart-format"
 import { colorByCategoryKey } from "@/lib/chart-colors"
 import { AIReportCard } from "./ai-report-card"
+import { AIInsightsCard } from "./ai-insights-card"
 import type { ReviewSummary } from "@/lib/dashboard"
 
 type Props = {
@@ -128,6 +129,9 @@ function SummaryTab({ data, yearMonth, aiAvailable }: SummaryTabProps) {
 
       {/* AI家計分析 */}
       <AIReportCard yearMonth={yearMonth} aiAvailable={aiAvailable} />
+
+      {/* AI削減提案・支出予測 */}
+      <AIInsightsCard yearMonth={yearMonth} aiAvailable={aiAvailable} />
     </div>
   )
 }
