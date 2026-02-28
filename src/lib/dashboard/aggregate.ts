@@ -334,14 +334,15 @@ export async function getInstallmentSummary(
 
   let activeCount = 0
   let totalMonthlyAmount = 0
+  let totalRemainingAmount = 0
   const items: InstallmentItem[] = []
 
   for (const inst of installments) {
     const isOwn = inst.userId === userId
+    const remainingAmount = inst.monthlyAmount * inst.remainingMonths
     activeCount += 1
     totalMonthlyAmount += inst.monthlyAmount
-
-    const remainingAmount = inst.monthlyAmount * inst.remainingMonths
+    totalRemainingAmount += remainingAmount
     const progressRate =
       inst.totalMonths > 0
         ? Math.round(
@@ -376,7 +377,7 @@ export async function getInstallmentSummary(
     // CATEGORY_TOTAL: items に含めない（集計のみ）
   }
 
-  return { activeCount, totalMonthlyAmount, items }
+  return { activeCount, totalMonthlyAmount, totalRemainingAmount, items }
 }
 
 // ============================================================

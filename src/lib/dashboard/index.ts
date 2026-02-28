@@ -25,3 +25,8 @@ export type {
   InstallmentItem,
   CsvImportStatus,
 } from "./types"
+
+export {
+  getDashboardSummary,
+  type DashboardSummary,
+} from "./get-dashboard-summary"

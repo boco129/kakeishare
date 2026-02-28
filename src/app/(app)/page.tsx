@@ -1,27 +1,41 @@
+import { Suspense } from "react"
+import { redirect } from "next/navigation"
 import { auth } from "@/auth"
-import { getDisplayName } from "@/lib/auth-utils"
-import { CsvImportStatusWidget } from "@/components/csv/csv-import-status"
+import { MonthSelector } from "@/components/dashboard/MonthSelector"
+import { DashboardDataSection } from "@/components/dashboard/DashboardDataSection"
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 
-export default async function DashboardPage() {
+/** 現在の YYYY-MM を返す */
+function getCurrentYearMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+}
+
+/** yearMonth パラメータのバリデーション */
+function validateYearMonth(value: string | undefined): string {
+  if (!value) return getCurrentYearMonth()
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return value
+  return getCurrentYearMonth()
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ yearMonth?: string }>
+}) {
   const session = await auth()
+  if (!session?.user?.id) redirect("/login")
+
+  const params = await searchParams
+  const yearMonth = validateYearMonth(params.yearMonth)
 
   return (
     <div className="px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold">ダッシュボード</h1>
-
-        <p className="text-muted-foreground">
-          ようこそ、{getDisplayName(session)}さん
-        </p>
-
-        {/* CSV取り込みステータス */}
-        <div className="rounded-lg border p-4">
-          <CsvImportStatusWidget />
-        </div>
-
-        <div className="rounded-lg border p-6 text-center text-muted-foreground">
-          その他のダッシュボード機能は今後実装予定です
-        </div>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <MonthSelector yearMonth={yearMonth} />
+        <Suspense key={yearMonth} fallback={<DashboardSkeleton />}>
+          <DashboardDataSection yearMonth={yearMonth} userId={session.user.id} />
+        </Suspense>
       </div>
     </div>
   )

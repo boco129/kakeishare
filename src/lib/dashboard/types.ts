@@ -65,6 +65,7 @@ export type BudgetCategorySummary = {
 export type InstallmentSummary = {
   activeCount: number
   totalMonthlyAmount: number
+  totalRemainingAmount: number
   items: InstallmentItem[]
 }
 

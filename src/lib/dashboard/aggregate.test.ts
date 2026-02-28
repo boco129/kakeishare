@@ -352,6 +352,7 @@ describe("getInstallmentSummary", () => {
 
     expect(result.activeCount).toBe(1)
     expect(result.totalMonthlyAmount).toBe(10000)
+    expect(result.totalRemainingAmount).toBe(60000)
     expect(result.items).toHaveLength(1)
     expect(result.items[0].description).toBe("ノートPC")
     expect(result.items[0].remainingAmount).toBe(60000)
@@ -366,6 +367,7 @@ describe("getInstallmentSummary", () => {
     const result = await getInstallmentSummary("user-taro")
 
     expect(result.activeCount).toBe(1)
+    expect(result.totalRemainingAmount).toBe(60000)
     expect(result.items).toHaveLength(1)
     expect(result.items[0].description).toBe("個人支出")
   })
@@ -379,6 +381,7 @@ describe("getInstallmentSummary", () => {
 
     expect(result.activeCount).toBe(1)
     expect(result.totalMonthlyAmount).toBe(10000)
+    expect(result.totalRemainingAmount).toBe(60000)
     expect(result.items).toHaveLength(0)
   })
 })
