@@ -136,6 +136,30 @@ describe("validateEnv", () => {
     })
   })
 
+  // --- ANTHROPIC_API_KEY ---
+  describe("ANTHROPIC_API_KEY", () => {
+    it("未設定でもエラーにならない（optional）", () => {
+      const env = { ...validEnv, ANTHROPIC_API_KEY: undefined }
+      expect(() => validateEnv(env)).not.toThrow()
+    })
+
+    it("空文字の場合にエラー", () => {
+      const env = { ...validEnv, ANTHROPIC_API_KEY: "" }
+      expect(() => validateEnv(env)).toThrow()
+    })
+
+    it("有効な値は通る", () => {
+      const env = { ...validEnv, ANTHROPIC_API_KEY: "sk-ant-test-key" }
+      const result = validateEnv(env)
+      expect(result.ANTHROPIC_API_KEY).toBe("sk-ant-test-key")
+    })
+
+    it("未設定の場合はundefinedを返す", () => {
+      const result = validateEnv(validEnv)
+      expect(result.ANTHROPIC_API_KEY).toBeUndefined()
+    })
+  })
+
   // --- 正常系 ---
   describe("正常系", () => {
     it("全て有効な場合にパースされた値を返す", () => {

@@ -43,6 +43,13 @@ export const envSchema = z.object({
     .string()
     .url("AUTH_URL は有効なURL形式である必要があります（例: http://localhost:3000）")
     .optional(),
+
+  // Phase 4: Claude AI連携（optional — 未設定でもPhase 3機能は正常動作）
+  ANTHROPIC_API_KEY: z
+    .string()
+    .trim()
+    .min(1, "ANTHROPIC_API_KEY が空です")
+    .optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -60,6 +67,7 @@ export function validateEnv(
     // NEXTAUTH_SECRET / NEXTAUTH_URL からのフォールバックを許容
     AUTH_SECRET: raw.AUTH_SECRET ?? raw.NEXTAUTH_SECRET,
     AUTH_URL: raw.AUTH_URL ?? raw.NEXTAUTH_URL,
+    ANTHROPIC_API_KEY: raw.ANTHROPIC_API_KEY,
   })
 
   if (!result.success) {

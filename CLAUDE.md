@@ -86,8 +86,15 @@ prisma/
 └── seed.ts                    # シードデータ
 ```
 
-> **将来追加予定のディレクトリ**（Phase 4以降）:
-> `src/lib/ai/`（Phase 4: Claude AI連携）
+### Phase 4 で追加済み / 追加予定のディレクトリ
+
+```
+src/lib/ai/                    # Claude AI連携（Phase 4）
+├── index.ts                   # 公開エントリポイント
+├── types.ts                   # AI結果型定義（AICategoryResult 等）
+├── schemas.ts                 # LLM出力のZodバリデーション
+└── config.ts                  # 境界ガード（API_KEY未設定時のエラー制御）
+```
 
 ## 4. コーディングルール
 
@@ -128,12 +135,16 @@ prisma/
 - CATEGORY_TOTAL支出はプロンプトに集計値のみ渡す（明細は含めない）
 - カテゴリ分類はHaiku（コスト効率）、レポート・チャットはSonnet
 - 分類結果の確信度がlowの場合は `confirmed: false` で人間確認を促す
+- **環境変数**: `ANTHROPIC_API_KEY` は optional — 未設定でもPhase 3機能は正常動作
+- **境界ガード**: AI呼び出し時は `getAnthropicApiKeyOrThrow()` で必須チェック（`src/lib/ai/config.ts`）
+- **出力検証**: Claude APIレスポンスは `aiCategoryOutputSchema`（Zod）で必ず検証する（`src/lib/ai/schemas.ts`）
+- **カテゴリ名解決**: Claude APIはカテゴリ「名前」を返すため、`categoryId` への変換レイヤーが必要
 
 ### CSV重複検知
 
 ```typescript
-// 日付 + 店舗名 + 金額のSHA-256ハッシュで重複判定
-generateExpenseHash(date, description, amount)
+// userId + カード種別 + 日付 + 店舗名 + 金額のSHA-256ハッシュで重複判定
+generateExpenseDedupeHash(userId, cardType, date, description, amount)
 ```
 
 ## 6. データモデル要約
