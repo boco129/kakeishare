@@ -1,5 +1,5 @@
 // 支出API E2E テスト — 認可制御 / CRUD / プライバシーフィルタ / 所有者制御
-import { test, expect, type APIResponse, type Playwright, type TestInfo } from "@playwright/test"
+import { test, expect, type APIResponse, type PlaywrightWorkerArgs, type TestInfo } from "@playwright/test"
 
 // api プロジェクトのみで実行
 test.beforeEach(({}, testInfo) => {
@@ -25,7 +25,7 @@ async function expectApiError(res: APIResponse, status: number, code: string) {
 
 /** member（花子）用 APIRequestContext でコールバックを実行し、自動で dispose */
 async function withMemberRequest(
-  playwright: Playwright,
+  playwright: PlaywrightWorkerArgs["playwright"],
   baseURL: string,
   fn: (ctx: import("@playwright/test").APIRequestContext) => Promise<void>,
 ) {
