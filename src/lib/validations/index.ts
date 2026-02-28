@@ -36,9 +36,10 @@ export { yearMonthSchema } from "./year-month"
 
 export {
   budgetCreateSchema,
-  budgetUpdateSchema,
+  budgetPatchSchema,
+  budgetListQuerySchema,
   type BudgetCreateInput,
-  type BudgetUpdateInput,
+  type BudgetPatchInput,
 } from "./budget"
 
 export {
