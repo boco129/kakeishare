@@ -1,4 +1,4 @@
-import { Home, Receipt, ChartNoAxesCombined, Settings } from "lucide-react"
+import { Home, Receipt, ChartNoAxesCombined, MessageCircle, Settings } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type NavigationItem = {
@@ -11,5 +11,6 @@ export const NAV_ITEMS: NavigationItem[] = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/expenses", label: "支出", icon: Receipt },
   { href: "/review", label: "レビュー", icon: ChartNoAxesCombined },
+  { href: "/chat", label: "相談", icon: MessageCircle },
   { href: "/settings", label: "設定", icon: Settings },
 ]

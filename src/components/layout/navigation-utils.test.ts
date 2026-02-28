@@ -11,6 +11,7 @@ describe("isPathActive", () => {
   it("完全一致でアクティブになる", () => {
     expect(isPathActive("/expenses", "/expenses")).toBe(true)
     expect(isPathActive("/review", "/review")).toBe(true)
+    expect(isPathActive("/chat", "/chat")).toBe(true)
     expect(isPathActive("/settings", "/settings")).toBe(true)
   })
 
