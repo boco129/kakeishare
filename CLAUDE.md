@@ -24,11 +24,17 @@
 | パッケージマネージャ | pnpm |
 | ホスティング | Vercel |
 
-### Phase 4 以降で導入予定
+### Phase 4 実装済み
 
 | レイヤー | 技術 |
 |---------|------|
 | AI連携 | Anthropic SDK (`@anthropic-ai/sdk`) |
+| AIテスト基盤 | AI_MOCK_MODE 環境変数によるモック切替 |
+
+### Phase 5 以降で導入予定
+
+| レイヤー | 技術 |
+|---------|------|
 | 通知 | LINE Messaging API |
 
 ## 3. ディレクトリ構成ルール
@@ -86,14 +92,38 @@ prisma/
 └── seed.ts                    # シードデータ
 ```
 
-### Phase 4 で追加済み / 追加予定のディレクトリ
+### Phase 4 で追加済みのディレクトリ
 
 ```
 src/lib/ai/                    # Claude AI連携（Phase 4）
 ├── index.ts                   # 公開エントリポイント
+├── client.ts                  # Anthropic SDK クライアント生成
 ├── types.ts                   # AI結果型定義（AICategoryResult 等）
 ├── schemas.ts                 # LLM出力のZodバリデーション
-└── config.ts                  # 境界ガード（API_KEY未設定時のエラー制御）
+├── config.ts                  # 境界ガード（API_KEY未設定時のエラー制御）
+├── classify.ts                # CSV取込時の自動カテゴリ分類（Haiku）
+├── category-resolver.ts       # カテゴリ名→ID解決レイヤー
+├── prompts.ts                 # プロンプトテンプレート
+├── generate-report.ts         # 月次家計レポート生成（Sonnet）
+├── generate-insights.ts       # 削減提案・支出予測（Sonnet）
+├── build-chat-context.ts      # チャット用コンテキスト構築
+├── usage-logger.ts            # AIトークン使用量ログ
+├── chat-rate-limit.ts         # チャット: 20回/日
+├── report-rate-limit.ts       # レポート: 5回/月
+├── insights-rate-limit.ts     # 削減提案: 5回/月
+└── test-mode.ts               # E2Eテスト用モック制御
+
+src/app/api/ai/               # AI APIルート
+├── chat/route.ts              # SSEストリーミングチャット
+├── report/route.ts            # 月次レポート生成
+└── insights/route.ts          # 削減提案・支出予測
+
+src/components/chat/           # チャットUI
+└── ChatClient.tsx             # AIチャットアドバイザー
+
+src/components/review/         # レビュー画面（AI機能含む）
+├── ai-report-card.tsx         # 月次AIレポート表示
+└── ai-insights-card.tsx       # 削減提案・支出予測パネル
 ```
 
 ## 4. コーディングルール

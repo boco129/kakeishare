@@ -249,13 +249,13 @@ describe("InMemoryRateLimitStore", () => {
         currentTime += 100
       }
 
-      const result = store.peek("email:test@example.com", cfg.blockMs)
+      const result = store.peek("email:test@example.com")
       expect(result.allowed).toBe(false)
       expect(result.retryAfterMs).toBeGreaterThan(0)
     })
 
     it("ブロックされていなければallowed=trueを返す", () => {
-      const result = store.peek("email:nonexistent@example.com", 60000)
+      const result = store.peek("email:nonexistent@example.com")
       expect(result.allowed).toBe(true)
       expect(result.retryAfterMs).toBe(0)
     })
@@ -265,7 +265,7 @@ describe("InMemoryRateLimitStore", () => {
 
       // peek を何回呼んでもカウンタは増えない
       for (let i = 0; i < 100; i++) {
-        store.peek("email:test@example.com", cfg.blockMs)
+        store.peek("email:test@example.com")
       }
 
       // checkAndConsumeはまだmaxAttempts回可能

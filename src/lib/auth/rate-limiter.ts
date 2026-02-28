@@ -21,7 +21,6 @@ export interface RateLimitStore {
   /** キーの現在のブロック状態を確認する（消費しない） */
   peek(
     key: string,
-    blockMs: number,
   ): RateLimitResult
 
   /** キーのカウンタをクリアする（ログイン成功時） */
@@ -84,7 +83,7 @@ export class InMemoryRateLimitStore implements RateLimitStore {
     return { allowed: true, retryAfterMs: 0 }
   }
 
-  peek(key: string, blockMs: number): RateLimitResult {
+  peek(key: string): RateLimitResult {
     const now = this.now()
     const entry = this.buckets.get(key)
     if (!entry) return { allowed: true, retryAfterMs: 0 }
@@ -148,11 +147,10 @@ export function peekRateLimit(
   email: string,
 ): RateLimitResult {
   const s = getStore()
-  const cfg = RATE_LIMIT_CONFIG
 
-  const ipResult = s.peek(ipKey(ip), cfg.ip.blockMs)
-  const emailResult = s.peek(emailKey(email), cfg.email.blockMs)
-  const emailIpResult = s.peek(emailIpKey(email, ip), cfg.emailIp.blockMs)
+  const ipResult = s.peek(ipKey(ip))
+  const emailResult = s.peek(emailKey(email))
+  const emailIpResult = s.peek(emailIpKey(email, ip))
 
   if (!ipResult.allowed || !emailResult.allowed || !emailIpResult.allowed) {
     const maxRetry = Math.max(
