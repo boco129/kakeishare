@@ -41,6 +41,54 @@ export type AICategoryRawOutput = {
   reasoning?: string
 }
 
+/** AI Insights（削減提案+支出予測）の入力データ */
+export type AIInsightsInput = {
+  /** 対象年月（YYYY-MM） */
+  yearMonth: string
+  /** 直近6ヶ月の月次支出推移（昇順） */
+  monthlyTrend: { yearMonth: string; total: number }[]
+  /** カテゴリ別月次推移 */
+  categoryTrend: {
+    yearMonth: string
+    categories: { category: string; amount: number; isFixedCost: boolean }[]
+  }[]
+  /** 対象月の予算 vs 実績 */
+  budgetSummary: { category: string; budget: number; actual: number }[]
+  /** 分割払い固定支出 */
+  installments: { monthlyAmount: number; remainingMonths: number }[]
+  /** データが存在する月数（信頼度判定に使用） */
+  availableMonths: number
+}
+
+/** 削減提案1件 */
+export type AISuggestionItem = {
+  category: string
+  currentAverage: number
+  targetAmount: number
+  savingAmount: number
+  description: string
+  priority: "high" | "medium" | "low"
+}
+
+/** カテゴリ別予測1件 */
+export type AIForecastCategoryItem = {
+  category: string
+  predictedAmount: number
+  reason: string
+}
+
+/** AI Insights のレスポンス（Claude JSON出力） */
+export type AIInsightsOutput = {
+  suggestions: AISuggestionItem[]
+  forecast: {
+    totalPredicted: number
+    confidence: AIConfidence
+    confidenceReason: string
+    categories: AIForecastCategoryItem[]
+  }
+  summary: string
+}
+
 /** AI月次レポートの入力データ */
 export type AIReportInput = {
   /** 対象年月（YYYY-MM） */

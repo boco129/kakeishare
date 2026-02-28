@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { aiCategoryOutputSchema, aiCategoryBatchOutputSchema } from "./schemas"
+import {
+  aiCategoryOutputSchema,
+  aiCategoryBatchOutputSchema,
+  aiInsightsOutputSchema,
+} from "./schemas"
 
 describe("aiCategoryOutputSchema", () => {
   it("有効なレスポンスを受け入れる", () => {
@@ -63,6 +67,91 @@ describe("aiCategoryBatchOutputSchema", () => {
       { category: "食費", confidence: "high" },
       { category: "", confidence: "invalid" },
     ])
+    expect(result.success).toBe(false)
+  })
+})
+
+describe("aiInsightsOutputSchema", () => {
+  const validInsights = {
+    suggestions: [
+      {
+        category: "食費",
+        currentAverage: 50000,
+        targetAmount: 40000,
+        savingAmount: 10000,
+        description: "まとめ買いで削減",
+        priority: "high",
+      },
+    ],
+    forecast: {
+      totalPredicted: 150000,
+      confidence: "high",
+      confidenceReason: "6ヶ月分のデータあり",
+      categories: [
+        { category: "食費", predictedAmount: 50000, reason: "安定推移" },
+      ],
+    },
+    summary: "全体的に支出は安定しています。食費の見直しで月1万円の削減が期待できます。",
+  }
+
+  it("有効なInsightsレスポンスを受け入れる", () => {
+    const result = aiInsightsOutputSchema.safeParse(validInsights)
+    expect(result.success).toBe(true)
+  })
+
+  it("suggestionsが空配列の場合は拒否する", () => {
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      suggestions: [],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("suggestionsが6件以上の場合は拒否する", () => {
+    const sixSuggestions = Array.from({ length: 6 }, (_, i) => ({
+      ...validInsights.suggestions[0],
+      category: `カテゴリ${i}`,
+    }))
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      suggestions: sixSuggestions,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("不正なpriority値を拒否する", () => {
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      suggestions: [
+        { ...validInsights.suggestions[0], priority: "critical" },
+      ],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("summaryが短すぎる場合は拒否する", () => {
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      summary: "短い",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("forecast.categoriesが空の場合は拒否する", () => {
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      forecast: { ...validInsights.forecast, categories: [] },
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("負の金額を拒否する", () => {
+    const result = aiInsightsOutputSchema.safeParse({
+      ...validInsights,
+      suggestions: [
+        { ...validInsights.suggestions[0], savingAmount: -1000 },
+      ],
+    })
     expect(result.success).toBe(false)
   })
 })
